@@ -26,7 +26,6 @@ import { API_URL } from "../baseURL";
 
 const { width } = Dimensions.get("window");
 
-// ✅ Zod Validation Schema
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -52,18 +51,26 @@ const Login = () => {
     setLoading(true);
     try {
       const payload = { ...data, role };
+      console.log("Login URL: ", `${API_URL}/users/login`);
       const response = await axios.post(`${API_URL}/users/login`, payload);
+
       if (response.status === 200) {
-        await AsyncStorage.setItem("user", JSON.stringify(response.data.data));
-        showSnackbar("Login successful!", "success");
-        setTimeout(() => {
-          router.replace(role === "customer" ? "/userDashboard" : "/providerDashboard");
-        }, 1500);
+        showSnackbar("OTP sent to your email!", "success");
+
+        // Navigate to OTP screen and pass email + role + userId
+        router.push({
+          pathname: "/auth/loginOTP",
+          params: {
+            email: data.email,
+            userId: response.data.data.userId,
+            role: role,
+          },
+        });
       } else {
         showSnackbar("Invalid credentials!", "error");
       }
     } catch (error) {
-      showSnackbar("Something went wrong. Please try again.", "error");
+      showSnackbar(error?.response?.data?.message || "Something went wrong", "error");
     } finally {
       setLoading(false);
     }
@@ -132,16 +139,15 @@ const Login = () => {
                 {loading ? <ActivityIndicator animating color="#fff" /> : "Login"}
               </Button>
 
-              <View style={{ alignItems: "center" }}>
-                <Button
-                  mode="contained"
-                  onPress={() => router.push("/auth/signUp")}
-                  style={[styles.signUpButton, { width: "80%", marginTop: 16, backgroundColor: "#6C63FF" }]}
-                  labelStyle={{ fontWeight: "bold", fontSize: 16 }}
-                >
-                  Create New Account
-                </Button>
-              </View>
+              {/* 🔥 Added Sign Up Button */}
+              <Button
+                mode="text"
+                onPress={() => router.push("/auth/signUp")}
+                style={styles.registerButton}
+                labelStyle={{ color: "#8A63D2", fontSize: 16 }}
+              >
+                Don't have an account? Sign Up
+              </Button>
             </Animated.View>
           </Animated.View>
         </View>
@@ -234,6 +240,7 @@ const styles = StyleSheet.create({
   passwordContainer: { flexDirection: "row", alignItems: "center", position: "relative" },
   iconButton: { position: "absolute", right: 10, top: "28%", transform: [{ translateY: -11 }], zIndex: 2 },
   signUpButton: { borderRadius: 8, marginTop: 24, backgroundColor: "#8A63D2", paddingVertical: 8 },
+  registerButton: { marginTop: 10, alignSelf: "center" },
   errorText: { color: "#FF4D4F", fontSize: 13, marginBottom: 6, marginTop: 2 },
 });
 

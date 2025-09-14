@@ -58,6 +58,7 @@ const Signup = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
+      console.log("Signup URL: ", `${API_URL}/users/register`);
       const res = await axios.post(`${API_URL}/users/register`, {
         username: data.username,
         email: data.email,

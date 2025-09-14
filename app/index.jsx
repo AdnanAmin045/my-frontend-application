@@ -12,6 +12,7 @@ import {
 import { Button, Text, Card } from "react-native-paper";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import icon from "../assets/icon.png";
 
 const { width } = Dimensions.get("window");
 
@@ -124,9 +125,7 @@ export default function Index() {
         />
         <View style={styles.heroContentMobile}>
           <Image
-            source={{
-              uri: "https://cdn-icons-png.flaticon.com/512/1046/1046857.png",
-            }}
+            source={icon}
             style={styles.logo}
           />
           <Text style={styles.heroTitleMobile}>

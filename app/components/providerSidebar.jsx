@@ -1,5 +1,5 @@
-import { View, TouchableOpacity, ScrollView, Text, StyleSheet } from "react-native";
-import { Link } from "expo-router";
+import { View, TouchableOpacity, ScrollView, Text, StyleSheet, useWindowDimensions } from "react-native";
+import { Link, usePathname } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 const providerSidebarItems = [
@@ -7,25 +7,51 @@ const providerSidebarItems = [
   { href: "/providerDashboard/orders", icon: "clipboard-list", label: "Orders" },
   { href: "/providerDashboard/offers", icon: "tag", label: "Offers" },
   { href: "/providerDashboard/riders", icon: "users", label: "Riders" },
-  { href: "/providerDashboard/profile", icon: "user", label: "Profile" },
 ];
 
 export default function ProviderSidebar() {
+  const pathname = usePathname();
+  const { width } = useWindowDimensions();
+  
   return (
     <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { minWidth: width } // Ensure it spans full width on larger screens
+        ]}
       >
-        {providerSidebarItems.map((item) => (
-          <Link key={item.href} href={item.href} asChild>
-            <TouchableOpacity style={styles.iconContainer}>
-              <FontAwesome5 name={item.icon} size={24} color="white" />
-              <Text style={styles.label}>{item.label}</Text>
-            </TouchableOpacity>
-          </Link>
-        ))}
+        {providerSidebarItems.map((item) => {
+          const isActive = pathname === item.href;
+          
+          return (
+            <Link key={item.href} href={item.href} asChild>
+              <TouchableOpacity style={[
+                styles.iconContainer,
+                isActive && styles.activeIconContainer
+              ]}>
+                <View style={[
+                  styles.iconWrapper,
+                  isActive && styles.activeIconWrapper
+                ]}>
+                  <FontAwesome5 
+                    name={item.icon} 
+                    size={20} 
+                    color={isActive ? "#FFFFFF" : "#9CA3AF"} 
+                  />
+                </View>
+                <Text style={[
+                  styles.label,
+                  isActive && styles.activeLabel
+                ]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -33,23 +59,56 @@ export default function ProviderSidebar() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "black",
-    paddingVertical: 10,
+    backgroundColor: "#111827",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#374151",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   scrollContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 6,
+    justifyContent: "space-around",
+    paddingHorizontal: 10,
   },
   iconContainer: {
-    width: 70,
     alignItems: "center",
-    marginHorizontal: 8,
+    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    minWidth: 80,
+  },
+  activeIconContainer: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    borderRadius: 12,
+  },
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    marginBottom: 6,
+  },
+  activeIconWrapper: {
+    backgroundColor: "#3B82F6",
   },
   label: {
-    color: "white",
+    color: "#D1D5DB",
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: "500",
     textAlign: "center",
+  },
+  activeLabel: {
+    color: "#3B82F6",
+    fontWeight: "600",
   },
 });

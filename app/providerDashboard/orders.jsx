@@ -177,8 +177,7 @@ const OrdersManager = () => {
   }
 
   return (
-   <>
-  
+    <SafeAreaView style={styles.container}>
       {/* Search Bar */}
       <TextInput
         style={styles.searchInput}
@@ -481,7 +480,7 @@ const OrdersManager = () => {
           </View>
         </View>
       </Modal>
-     </>
+    </SafeAreaView>
   );
 };
 
@@ -516,14 +515,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   filterButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 20,
     backgroundColor: "#e5e7eb",
     marginRight: 8,
     minWidth: 70,
     alignItems: "center",
     justifyContent: "center",
+    height: 40,
   },
   activeFilter: { 
     backgroundColor: "#6200ea" 
@@ -531,7 +531,9 @@ const styles = StyleSheet.create({
   filterText: { 
     color: "#1f2937", 
     fontWeight: "600", 
-    fontSize: 12 
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 16,
   },
   activeFilterText: { 
     color: "#fff" 
