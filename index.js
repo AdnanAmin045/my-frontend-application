@@ -1,8 +1,12 @@
 import { registerRootComponent } from 'expo';
-
+import React from 'react';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import App from './App';
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+const Root = () => (
+  <StripeProvider publishableKey="pk_test_51QSvzYKypTY7oIgzOOL1YmzYuVdsVWV283maYMsfdVmVzx3qWx9fjrMZjZtFZ1r3rBdPLTgy7mjWyPALuMSgt4XD00hWi1v66Z">
+    <App />
+  </StripeProvider>
+);
+
+registerRootComponent(Root);

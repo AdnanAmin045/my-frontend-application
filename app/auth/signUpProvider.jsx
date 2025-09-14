@@ -21,7 +21,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
@@ -133,6 +132,11 @@ const SignUpProvider = () => {
     );
   };
 
+  // Toggle menu visibility
+  const toggleMenu = () => {
+    setMenuVisible((prev) => !prev);
+  };
+
   // Submit API
   const onSubmit = async (data) => {
     setLoading(true);
@@ -142,7 +146,7 @@ const SignUpProvider = () => {
         data
       );
       if (response.status === 201) {
-        router.push("/Login");
+        router.push("/auth/login");
       } else {
         Alert.alert("Error", "Failed to register. Please try again.");
       }
@@ -157,135 +161,140 @@ const SignUpProvider = () => {
 
   return (
     <PaperProvider>
-      <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoidingView}
-        >
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Animated.View entering={FadeInDown.duration(500)} style={styles.card}>
-              <View style={styles.header}>
-                <Text style={styles.headerTitle}>Join as a Provider</Text>
-                <Text style={styles.headerSubtitle}>Create your business account</Text>
-              </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Animated.View entering={FadeInDown.duration(500)} style={styles.card}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Join as a Provider</Text>
+              <Text style={styles.headerSubtitle}>Create your business account</Text>
+            </View>
 
-              {/* Business Name */}
-              <InputField
-                control={control}
-                name="username"
-                label="Business Name"
-                placeholder="Enter Business Name"
-                error={errors.username?.message}
-              />
+            {/* Business Name */}
+            <InputField
+              control={control}
+              name="username"
+              label="Business Name"
+              placeholder="Enter Business Name"
+              error={errors.username?.message}
+            />
 
-              {/* Email */}
-              <InputField
-                control={control}
-                name="email"
-                label="Email"
-                placeholder="Enter Email"
-                keyboardType="email-address"
-                error={errors.email?.message}
-              />
+            {/* Email */}
+            <InputField
+              control={control}
+              name="email"
+              label="Email"
+              placeholder="Enter Email"
+              keyboardType="email-address"
+              error={errors.email?.message}
+            />
 
-              {/* Password */}
-              <InputField
-                control={control}
-                name="password"
-                label="Password"
-                placeholder="Enter Password"
-                secureTextEntry={secureText}
-                rightIcon={() => (
-                  <IconButton
-                    icon={secureText ? "eye-off" : "eye"}
-                    onPress={() => setSecureText(!secureText)}
-                    size={22}
-                    iconColor="#6B7280"
-                  />
-                )}
-                error={errors.password?.message}
-              />
-
-              {/* Phone */}
-              <InputField
-                control={control}
-                name="phoneNo"
-                label="Phone Number"
-                placeholder="Enter Phone Number"
-                keyboardType="phone-pad"
-                error={errors.phoneNo?.message}
-              />
-
-              {/* Services Dropdown */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Select Services</Text>
-                <Menu
-                  visible={menuVisible}
-                  onDismiss={() => setMenuVisible(false)}
-                  anchor={
-                    <TouchableOpacity
-                      style={styles.dropdownButton}
-                      onPress={() => setMenuVisible(true)}
-                    >
-                      <Text style={styles.dropdownText}>
-                        {servicesLoading
-                          ? "Loading services..."
-                          : selectedServices.length > 0
-                          ? `Selected: ${selectedServices.length}`
-                          : "Choose Services"}
-                      </Text>
-                      <Ionicons name="chevron-down" size={20} color="#6B7280" />
-                    </TouchableOpacity>
-                  }
-                >
-                  {servicesLoading ? (
-                    <Menu.Item title="Loading..." disabled />
-                  ) : allServices.length > 0 ? (
-                    allServices.map((service) => (
-                      <Menu.Item
-                        key={service._id}
-                        onPress={() => handleSelectService(service)}
-                        title={service.name}
-                      />
-                    ))
-                  ) : (
-                    <Menu.Item title="No services available" disabled />
-                  )}
-                </Menu>
-                {errors.services && (
-                  <Text style={styles.errorText}>{errors.services.message}</Text>
-                )}
-              </View>
-
-              {/* Selected Service Chips */}
-              {selectedServices.length > 0 && (
-                <View style={styles.serviceTagsContainer}>
-                  {selectedServices.map((id) => {
-                    const service = allServices.find((s) => s._id === id);
-                    return (
-                      <View key={id} style={styles.serviceTag}>
-                        <Text style={styles.serviceTagText}>
-                          {service?.name || "Unknown"}
-                        </Text>
-                        <TouchableOpacity onPress={() => removeService(id)}>
-                          <Ionicons name="close-circle" size={18} color="#FFF" />
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                </View>
+            {/* Password */}
+            <InputField
+              control={control}
+              name="password"
+              label="Password"
+              placeholder="Enter Password"
+              secureTextEntry={secureText}
+              rightIcon={() => (
+                <IconButton
+                  icon={secureText ? "eye-off" : "eye"}
+                  onPress={() => setSecureText(!secureText)}
+                  size={22}
+                  iconColor="#6B7280"
+                />
               )}
+              error={errors.password?.message}
+            />
 
-              {/* Shop Address */}
-              <InputField
-                control={control}
-                name="shopAddress"
-                label="Shop Address"
-                placeholder="Enter Shop Address"
-                multiline
-                error={errors.shopAddress?.message}
-              />
+            {/* Phone */}
+            <InputField
+              control={control}
+              name="phoneNo"
+              label="Phone Number"
+              placeholder="Enter Phone Number"
+              keyboardType="phone-pad"
+              error={errors.phoneNo?.message}
+            />
 
+            {/* Services Dropdown */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Select Services</Text>
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <TouchableOpacity
+                    style={styles.dropdownButton}
+                    onPress={toggleMenu}
+                  >
+                    <Text style={styles.dropdownText}>
+                      {servicesLoading
+                        ? "Loading services..."
+                        : selectedServices.length > 0
+                        ? `Selected: ${selectedServices.length}`
+                        : "Choose Services"}
+                    </Text>
+                    <Ionicons
+                      name={menuVisible ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color="#6B7280"
+                    />
+                  </TouchableOpacity>
+                }
+              >
+                {servicesLoading ? (
+                  <Menu.Item title="Loading..." disabled />
+                ) : allServices.length > 0 ? (
+                  allServices.map((service) => (
+                    <Menu.Item
+                      key={service._id}
+                      onPress={() => handleSelectService(service)}
+                      title={service.name}
+                    />
+                  ))
+                ) : (
+                  <Menu.Item title="No services available" disabled />
+                )}
+              </Menu>
+              {errors.services && (
+                <Text style={styles.errorText}>{errors.services.message}</Text>
+              )}
+            </View>
+
+            {/* Selected Service Chips */}
+            {selectedServices.length > 0 && (
+              <View style={styles.serviceTagsContainer}>
+                {selectedServices.map((id) => {
+                  const service = allServices.find((s) => s._id === id);
+                  return (
+                    <View key={id} style={styles.serviceTag}>
+                      <Text style={styles.serviceTagText}>
+                        {service?.name || "Unknown"}
+                      </Text>
+                      <TouchableOpacity onPress={() => removeService(id)}>
+                        <Ionicons name="close-circle" size={18} color="#FFF" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Shop Address */}
+            <InputField
+              control={control}
+              name="shopAddress"
+              label="Shop Address"
+              placeholder="Enter Shop Address"
+              multiline
+              error={errors.shopAddress?.message}
+            />
+
+            {/* Button Container */}
+            <View style={styles.buttonContainer}>
               {/* Submit Button */}
               <TouchableOpacity
                 style={[styles.signUpButton, loading && styles.disabledButton]}
@@ -303,10 +312,18 @@ const SignUpProvider = () => {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
-            </Animated.View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={() => router.push("/auth/login")}
+              >
+                <Text style={styles.loginButtonText}>Login</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </PaperProvider>
   );
 };
@@ -347,49 +364,132 @@ const InputField = ({
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  keyboardAvoidingView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 16, alignItems: "center" },
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
+    alignItems: "center",
+  },
   card: {
     width: width > 500 ? 450 : "100%",
     backgroundColor: "#FFF",
     borderRadius: 12,
-    padding: 20,
+    padding: 24,
     elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  header: { alignItems: "center", marginBottom: 16 },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#1F2937" },
-  headerSubtitle: { fontSize: 16, color: "#6B7280", marginTop: 4 },
-  inputContainer: { marginBottom: 12 },
-  label: { fontSize: 14, fontWeight: "600", marginBottom: 6 },
-  input: { backgroundColor: "#FFF", borderRadius: 8, fontSize: 16 },
+  header: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    fontSize: 16,
+  },
   dropdownButton: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     borderRadius: 8,
     backgroundColor: "#FFF",
   },
-  dropdownText: { fontSize: 16, color: "#1F2937" },
-  serviceTagsContainer: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
+  dropdownText: {
+    fontSize: 16,
+    color: "#1F2937",
+  },
+  serviceTagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 8,
+  },
   serviceTag: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#8A63D2",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
   },
-  serviceTagText: { fontSize: 14, color: "#FFF", marginRight: 6 },
-  errorText: { fontSize: 14, color: "#EF4444", marginTop: 4 },
-  signUpButton: { borderRadius: 8, marginTop: 20 },
-  disabledButton: { opacity: 0.6 },
-  signUpButtonGradient: { padding: 16, alignItems: "center" },
-  signUpButtonText: { fontSize: 18, fontWeight: "700", color: "#FFF" },
+  serviceTagText: {
+    fontSize: 14,
+    color: "#FFF",
+    marginRight: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#EF4444",
+    marginTop: 4,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 24,
+    gap: 12,
+  },
+  signUpButton: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  signUpButtonGradient: {
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  signUpButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFF",
+  },
+  loginButton: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#8A63D2",
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF",
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#8A63D2",
+  },
 });
 
 export default SignUpProvider;

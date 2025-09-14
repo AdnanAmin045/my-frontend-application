@@ -66,7 +66,7 @@ const Signup = () => {
 
       if (res.status === 201) {
         setVisible(true);
-        setTimeout(() => router.replace("/Login"), 2000);
+        setTimeout(() => router.replace("/auth/login"), 2000);
       } else {
         Alert.alert("Error", "Signup failed! Try again.");
       }

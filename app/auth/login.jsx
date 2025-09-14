@@ -57,7 +57,7 @@ const Login = () => {
         await AsyncStorage.setItem("user", JSON.stringify(response.data.data));
         showSnackbar("Login successful!", "success");
         setTimeout(() => {
-          router.replace(role === "customer" ? "/userdashboard" : "/providerdashboard");
+          router.replace(role === "customer" ? "/userDashboard" : "/providerDashboard");
         }, 1500);
       } else {
         showSnackbar("Invalid credentials!", "error");

@@ -47,7 +47,7 @@ const Explore = () => {
   const [errors, setErrors] = useState({});
   const [cardDetails, setCardDetails] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const { confirmPayment, createPaymentMethod } = useStripe();
+  const { confirmPayment } = useStripe();
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(300)).current;
 
@@ -102,10 +102,7 @@ const Explore = () => {
         ? prev.filter((s) => s.name !== service.name)
         : [...prev, service];
       if (!isSelected) {
-        setQuantities((prev) => ({
-          ...prev,
-          [service.name]: 1,
-        }));
+        setQuantities((prev) => ({ ...prev, [service.name]: 1 }));
       } else {
         setQuantities((prev) => {
           const newQuantities = { ...prev };
@@ -169,32 +166,43 @@ const Explore = () => {
   };
 
   const handlePaymentConfirm = async () => {
-    console.log("handlePaymentConfirm called with cardDetails:", cardDetails);
     if (!cardDetails?.complete) {
-      console.error("Card details incomplete");
       setErrors({ payment: "Please complete card details" });
       return;
     }
     setPaymentLoading(true);
-    try {
-      const { paymentMethod, error } = await createPaymentMethod({
-        paymentMethodType: "Card",
-        card: cardDetails,
-      });
-      if (error) {
-        console.error("Payment Method Error:", error);
-        setErrors({ payment: `Payment failed: ${error.message}` });
-        setPaymentLoading(false);
-        return;
-      }
-      console.log("Payment Method Created:", paymentMethod);
 
+    try {
       const user = await AsyncStorage.getItem("user");
       const token = user ? JSON.parse(user).accessToken : null;
 
-      console.log("Sending paymentMethodId:", paymentMethod.id);
-      const response = await axios.post(
-        `${API_URL}/orders/create-and-confirm-payment`,
+      // 1️⃣ Create PaymentIntent on backend
+      const paymentIntentRes = await axios.post(
+        `${API_URL}/orders/create-payment-intent`,
+        { amount: parseFloat(calculateTotal()) * 100, currency: "usd" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const clientSecret = paymentIntentRes.data.clientSecret;
+
+      // 2️⃣ Confirm Payment
+      const { paymentIntent, error } = await confirmPayment(clientSecret, {
+        paymentMethodType: "Card",
+        paymentMethodData: {
+          billingDetails: { email, phone, address: { line1: address } },
+        },
+      });
+
+      if (error) {
+        console.error("Payment Error:", error);
+        setErrors({ payment: error.message });
+        setPaymentLoading(false);
+        return;
+      }
+
+      // 3️⃣ Save order to backend
+      await axios.post(
+        `${API_URL}/orders/createOrder`,
         {
           serviceProviderId: selectedOffer.serviceProvider._id,
           offerId: selectedOffer._id,
@@ -205,32 +213,20 @@ const Explore = () => {
           })),
           totalPayment: parseFloat(calculateTotal()),
           address: { homeAddress: address, phoneNo: phone, email },
-          paymentMethodId: paymentMethod.id,
+          paymentIntentId: paymentIntent.id,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("API Response:", response.data);
 
-      Alert.alert("Success", "Order placed successfully!");
-      setSelectedServices([]);
-      setQuantities({});
-      setAddress("");
-      setPhone("");
-      setEmail("");
-      setErrors({});
-      setCardDetails(null);
-      setPaymentModalVisible(false);
+      Alert.alert("Success", "Payment successful and order placed!");
+      handleCancel();
     } catch (err) {
-      console.error("Payment Error:", err.response?.data || err.message);
-      setErrors({ payment: "Failed to process payment or save order." });
+      console.error(err.response?.data || err.message);
+      setErrors({ payment: "Payment failed. Please try again." });
     } finally {
       setPaymentLoading(false);
     }
   };
-
-  useEffect(() => {
-    console.log(cardDetails);
-  },[cardDetails]);
 
   const handleCancel = () => {
     setModalVisible(false);
@@ -249,9 +245,7 @@ const Explore = () => {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#6200ea" />
-        {errors.general && (
-          <Text style={styles.errorText}>{errors.general}</Text>
-        )}
+        {errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
       </View>
     );
   }
@@ -524,6 +518,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 50,
   },
   card: {
     marginHorizontal: 16,

@@ -1,23 +1,19 @@
-import { View, TouchableOpacity, ScrollView, Text, StyleSheet } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 const userSidebarItems = [
   { href: "/", icon: "home", label: "Home" },
-  { href: "/userdashboard/explore", icon: "search", label: "Explore" },
-  { href: "/userdashboard/service-selection", icon: "tools", label: "Services" },
-  { href: "/userdashboard/profile", icon: "user", label: "Profile" },
+  { href: "/userDashboard/explore", icon: "search", label: "Explore" },
+  { href: "/userDashboard/orders", icon: "shopping-cart", label: "Orders" },
+  { href: "/userDashboard/measurements", icon: "ruler", label: "Measurements" },
 ];
 
 export default function UserSidebar() {
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {userSidebarItems.map((item, idx) => (
+      <View style={styles.menuContainer}>
+        {userSidebarItems.map((item) => (
           <Link key={item.href} href={item.href} asChild>
             <TouchableOpacity style={styles.iconContainer}>
               <FontAwesome5 name={item.icon} size={24} color="white" />
@@ -25,7 +21,7 @@ export default function UserSidebar() {
             </TouchableOpacity>
           </Link>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -33,22 +29,26 @@ export default function UserSidebar() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#000",
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
-  scrollContent: {
+  menuContainer: {
     flexDirection: "row",
+    justifyContent: "space-evenly",
     alignItems: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
   },
   iconContainer: {
-    width: 70,
+    width: 80, // Adjusted width to fit all items
     alignItems: "center",
-    marginHorizontal: 8,
+    justifyContent: "center",
+    marginHorizontal: 4, // Reduced gap for compact layout
+    paddingVertical: 8,
   },
   label: {
     color: "white",
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: "500",
+    marginTop: 6,
     textAlign: "center",
   },
 });

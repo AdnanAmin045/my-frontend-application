@@ -37,8 +37,8 @@ export default function Index() {
   }, []);
 
   const handleDashboardNavigation = () => {
-    if (userRole === "customer") router.replace("/userdashboard");
-    if (userRole === "provider") router.replace("/providerdashboard");
+    if (userRole === "customer") router.replace("/userDashboard");
+    if (userRole === "provider") router.replace("/providerDashboard");
   };
 
   const handleLogout = async () => {
@@ -138,8 +138,8 @@ export default function Index() {
           </Text>
 
           {/* Buttons */}
-          {/* <View style={styles.heroButtonsMobile}>
-            <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+          <View style={styles.heroButtonsMobile}>
+            <View style={{ flexDirection: "column", gap: 12, flexWrap: "wrap" }}>
               {accessToken ? (
                 <>
                   <Button
@@ -184,7 +184,7 @@ export default function Index() {
                 </>
               )}
             </View>
-          </View> */}
+          </View>
         </View>
       </View>
 
