@@ -13,7 +13,7 @@ import {
 import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const MeasurementsViewer = () => {

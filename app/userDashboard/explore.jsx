@@ -19,7 +19,7 @@ import { useRouter } from "expo-router";
 import { z } from "zod";
 import { CardField, useStripe } from "@stripe/stripe-react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const orderSchema = z.object({
@@ -251,7 +251,7 @@ const Explore = () => {
   }
 
   return (
-    <>
+    <View>
       <FlatList
         data={offers}
         keyExtractor={(item) => item._id}
@@ -494,10 +494,10 @@ const Explore = () => {
               {paymentLoading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Icon name="lock" size={16} color="#FFF" />
                   <Text style={styles.payButtonText}>Pay Securely</Text>
-                </>
+                </View>
               )}
             </TouchableOpacity>
 
@@ -509,7 +509,7 @@ const Explore = () => {
           </Animated.View>
         </TouchableOpacity>
       </Modal>
-    </>
+    </View>
   );
 };
 

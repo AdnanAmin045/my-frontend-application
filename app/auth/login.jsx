@@ -22,7 +22,7 @@ import * as z from "zod";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 
 const { width } = Dimensions.get("window");
 

@@ -1,9 +1,11 @@
 import { Stack } from "expo-router";
 import UserSidebar from "../components/userSidebar";
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { View } from 'react-native';
+
 export default function UserDashboardLayout() {
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f2f2f2" }}>
           <Stack screenOptions={{ headerShown: false }}>
@@ -15,6 +17,6 @@ export default function UserDashboardLayout() {
           <UserSidebar />
         </SafeAreaView>
       </SafeAreaProvider>
-    </>
+    </View>
   );
 }

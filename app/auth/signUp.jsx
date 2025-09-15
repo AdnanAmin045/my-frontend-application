@@ -22,7 +22,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 
 const { width } = Dimensions.get("window");
 

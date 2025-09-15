@@ -10,7 +10,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 
 export default function OtpVerification() {
   const { email, userId, role } = useLocalSearchParams(); // role from params

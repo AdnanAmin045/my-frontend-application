@@ -8,7 +8,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import axios from "axios";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';

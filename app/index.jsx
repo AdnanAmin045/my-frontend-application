@@ -140,7 +140,7 @@ export default function Index() {
           <View style={styles.heroButtonsMobile}>
             <View style={{ flexDirection: "column", gap: 12, flexWrap: "wrap" }}>
               {accessToken ? (
-                <>
+                <View style={{ flexDirection: "column", gap: 12 }}>
                   <Button
                     key="dashboard"
                     mode="contained"
@@ -159,9 +159,9 @@ export default function Index() {
                   >
                     Logout
                   </Button>
-                </>
+                </View>
               ) : (
-                <>
+                <View style={{ flexDirection: "column", gap: 12 }}>
                   <Button
                     key="login"
                     mode="outlined"
@@ -180,7 +180,7 @@ export default function Index() {
                   >
                     Signup
                   </Button>
-                </>
+                </View>
               )}
             </View>
           </View>

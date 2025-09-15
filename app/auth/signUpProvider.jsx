@@ -26,7 +26,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Location from "expo-location";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 
 const { width } = Dimensions.get("window");
 

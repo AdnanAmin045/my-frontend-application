@@ -16,7 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
-import { API_URL } from "../baseURL";
+import { API_URL } from "../../baseURL";
 
 // Zod schema
 const offerSchema = z.object({
@@ -300,7 +300,7 @@ export default function OffersScreen() {
               control={control}
               name="title"
               render={({ field: { onChange, value } }) => (
-                <>
+                <View>
                   <Text style={{ fontWeight: "600", marginBottom: 2 }}>
                     Title
                   </Text>
@@ -319,7 +319,7 @@ export default function OffersScreen() {
                   {errors.title && (
                     <Text style={{ color: "red" }}>{errors.title.message}</Text>
                   )}
-                </>
+                </View>
               )}
             />
 
@@ -328,7 +328,7 @@ export default function OffersScreen() {
               control={control}
               name="description"
               render={({ field: { onChange, value } }) => (
-                <>
+                <View>
                   <Text style={{ fontWeight: "600", marginBottom: 2 }}>
                     Description
                   </Text>
@@ -349,7 +349,7 @@ export default function OffersScreen() {
                       {errors.description.message}
                     </Text>
                   )}
-                </>
+                </View>
               )}
             />
 
@@ -358,7 +358,7 @@ export default function OffersScreen() {
               control={control}
               name="discountPercentage"
               render={({ field: { onChange, value } }) => (
-                <>
+                <View>
                   <Text style={{ fontWeight: "600", marginBottom: 2 }}>
                     Discount %
                   </Text>
@@ -380,7 +380,7 @@ export default function OffersScreen() {
                       {errors.discountPercentage.message}
                     </Text>
                   )}
-                </>
+                </View>
               )}
             />
 
