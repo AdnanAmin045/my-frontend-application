@@ -3,10 +3,10 @@ import { Link, usePathname } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 const providerSidebarItems = [
-  { href: "/", icon: "home", label: "Home" },
-  { href: "/adminDashboard/application", icon: "clipboard-list", label: "Application" },
-  { href: "/adminDashboard/services", icon: "tag", label: "Services" },
-  { href: "/adminDashboard/riders", icon: "users", label: "Riders" },
+  { href: "/", icon: "home", label: "Home" },                  // Home icon
+  { href: "/adminDashboard/application", icon: "clipboard", label: "Application" }, // Clipboard for applications
+  { href: "/adminDashboard/services", icon: "cogs", label: "Services" },             // Cogs for services
+  { href: "/adminDashboard/review", icon: "star", label: "Review" },                // Star for reviews
 ];
 
 export default function AdminSidebar() {

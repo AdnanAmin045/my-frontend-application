@@ -9,6 +9,7 @@ import {
   ScrollView,
   TextInput,
   Switch,
+  Alert,
 } from "react-native";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
@@ -27,6 +28,7 @@ const offerSchema = z.object({
   servicesIncluded: z
     .array(
       z.object({
+        _id: z.string().optional(),
         name: z.string(),
         price: z.number(),
       })
@@ -40,10 +42,11 @@ export default function OffersScreen() {
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [services, setServices] = useState([]);
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedServiceId, setSelectedServiceId] = useState(null);
   const [servicePrice, setServicePrice] = useState("");
-  const [profileActive, setProfileActive] = useState(false); // ✅ Profile toggle state
+  const [profileActive, setProfileActive] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const {
     control,
@@ -65,11 +68,21 @@ export default function OffersScreen() {
   // ✅ Fetch Services
   const fetchServices = async () => {
     try {
-      const response = await axios.get(`${API_URL}/services/getAll`);
-      const servicesData = Array.isArray(response.data.data)
-        ? response.data.data
-        : [];
-      setServices(servicesData);
+      const token = await AsyncStorage.getItem("user");
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+      if (!accessToken) {
+        router.push("/auth/login");
+        return;
+      }
+      const response = await axios.get(
+        `${API_URL}/services/getServicesForProvider`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setServices(response.data.services || []);
     } catch (err) {
       console.log(
         "Error fetching services:",
@@ -82,10 +95,12 @@ export default function OffersScreen() {
   // ✅ Fetch Offers
   const fetchOffers = async () => {
     try {
+      setLoading(true);
       const token = await AsyncStorage.getItem("user");
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) {
         router.push("/auth/login");
+        return;
       }
 
       const response = await axios.get(`${API_URL}/offers/getAll`, {
@@ -100,6 +115,9 @@ export default function OffersScreen() {
       setOffers(offersData);
     } catch (err) {
       console.log("Error fetching offers:", err.response?.data || err.message);
+      Alert.alert("Error", "Failed to fetch offers");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -111,12 +129,11 @@ export default function OffersScreen() {
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) {
         router.push("/auth/login");
+        return;
       }
-
-      const response = await axios.get(`${API_URL}/provider/profile`, {
+      const response = await axios.get(`${API_URL}/providers/getProfileStatus`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
       if (response.data?.data?.isActive !== undefined) {
         setProfileActive(response.data.data.isActive);
       }
@@ -137,8 +154,8 @@ export default function OffersScreen() {
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) {
         router.push("/auth/login");
+        return;
       }
-
       const response = await axios.patch(
         `${API_URL}/offers/toggle-status`,
         { isActive: !profileActive },
@@ -151,9 +168,8 @@ export default function OffersScreen() {
         setProfileActive(!profileActive);
       }
     } catch (error) {
-      console.log(
-        error.response?.data || error.message
-      );
+      console.log(error.response?.data || error.message);
+      Alert.alert("Error", "Failed to update profile status");
     } finally {
       setProfileLoading(false);
     }
@@ -165,12 +181,16 @@ export default function OffersScreen() {
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) {
         router.push("/auth/login");
+        return;
       }
-      const res = await axios.get(`${API_URL}/offers/getProviderProfileStatus`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const res = await axios.get(
+        `${API_URL}/offers/getProviderProfileStatus`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       setProfileActive(res.data.status);
     } catch (error) {
       console.error("Error fetching profile status:", error);
@@ -190,6 +210,7 @@ export default function OffersScreen() {
       const token = await AsyncStorage.getItem("user");
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) return;
+      
       const response = await axios.patch(
         `${API_URL}/offers/toggle/${id}`,
         { isActive: !currentStatus },
@@ -208,28 +229,53 @@ export default function OffersScreen() {
         "Error toggling offer:",
         error.response?.data || error.message
       );
+      Alert.alert("Error", "Failed to toggle offer status");
     }
   };
 
-  // ✅ Add Service to Offer
+  // ✅ Add Service to Offer - FIXED
   const addService = () => {
-    if (!selectedService || servicePrice === "") return;
+    if (!selectedServiceId || servicePrice === "") {
+      Alert.alert("Error", "Please select a service and enter a price");
+      return;
+    }
+    
+    // Find the selected service object
+    const selectedService = services.find(s => s._id === selectedServiceId);
+    if (!selectedService) return;
+    
     const currentServices = watch("servicesIncluded");
-    if (currentServices.find((s) => s.name === selectedService.name)) return;
+    
+    // Check if service already exists by ID (more reliable than name)
+    if (currentServices.find(s => s._id === selectedServiceId)) {
+      Alert.alert("Error", "This service is already added");
+      return;
+    }
 
     const updatedServices = [
       ...currentServices,
-      { name: selectedService.name, price: Number(servicePrice) },
+      { 
+        _id: selectedService._id,
+        name: selectedService.name, 
+        price: Number(servicePrice) 
+      },
     ];
     setValue("servicesIncluded", updatedServices);
-    setSelectedService(null);
+    setSelectedServiceId(null);
     setServicePrice("");
+  };
+
+  // ✅ Remove Service from Offer
+  const removeService = (serviceId) => {
+    const currentServices = watch("servicesIncluded");
+    const updatedServices = currentServices.filter(s => s._id !== serviceId);
+    setValue("servicesIncluded", updatedServices);
   };
 
   // ✅ Create New Offer
   const onSubmit = async (data) => {
     try {
-      setLoading(true);
+      setModalLoading(true);
       const token = await AsyncStorage.getItem("user");
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) return;
@@ -241,20 +287,22 @@ export default function OffersScreen() {
       });
 
       if (response.status === 200 || response.status === 201) {
+        Alert.alert("Success", "Offer created successfully");
         fetchOffers();
         reset();
         setVisible(false);
       }
     } catch (err) {
       console.log("Error creating offer:", err.response?.data || err.message);
+      Alert.alert("Error", "Failed to create offer");
     } finally {
-      setLoading(false);
+      setModalLoading(false);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 10 }}>
-      {/* Add Offer Button */}
+      {/* Profile Active Toggle */}
       <View
         style={{
           flexDirection: "row",
@@ -492,32 +540,38 @@ export default function OffersScreen() {
             />
 
             {/* Services Dropdown */}
-            <Picker
-              selectedValue={selectedService}
-              onValueChange={(itemValue) => setSelectedService(itemValue)}
-            >
-              <Picker.Item label="Select Service" value={null} />
-              {Array.isArray(services) &&
-                services.map((s) => (
-                  <Picker.Item key={s._id} label={s.name} value={s} />
-                ))}
-            </Picker>
+            <Text style={{ fontWeight: "600", marginBottom: 2 }}>Select Service</Text>
+            <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, marginBottom: 10 }}>
+              <Picker
+                selectedValue={selectedServiceId}
+                onValueChange={(itemValue) => setSelectedServiceId(itemValue)}
+              >
+                <Picker.Item label="Select Service" value={null} />
+                {Array.isArray(services) &&
+                  services.map((s) => (
+                    <Picker.Item key={s._id} label={s.name} value={s._id} />
+                  ))}
+              </Picker>
+            </View>
 
             {/* Price input */}
-            {selectedService && (
-              <TextInput
-                placeholder={`Enter price for ${selectedService.name}`}
-                value={servicePrice}
-                onChangeText={setServicePrice}
-                keyboardType="numeric"
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  padding: 10,
-                  marginVertical: 5,
-                  borderRadius: 6,
-                }}
-              />
+            {selectedServiceId && (
+              <>
+                <Text style={{ fontWeight: "600", marginBottom: 2 }}>Price</Text>
+                <TextInput
+                  placeholder={`Enter price for ${services.find(s => s._id === selectedServiceId)?.name}`}
+                  value={servicePrice}
+                  onChangeText={setServicePrice}
+                  keyboardType="numeric"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#ccc",
+                    padding: 10,
+                    marginBottom: 10,
+                    borderRadius: 6,
+                  }}
+                />
+              </>
             )}
 
             <TouchableOpacity
@@ -535,13 +589,35 @@ export default function OffersScreen() {
             </TouchableOpacity>
 
             {/* Display selected services */}
-            {watch("servicesIncluded").map((s, index) => (
-              <Text key={index} style={{ marginBottom: 3 }}>
-                {s.name} ($ {s.price})
+            <Text style={{ fontWeight: "600", marginBottom: 5 }}>Selected Services:</Text>
+            {watch("servicesIncluded").length > 0 ? (
+              watch("servicesIncluded").map((s, index) => (
+                <View key={index} style={{ 
+                  flexDirection: "row", 
+                  justifyContent: "space-between", 
+                  alignItems: "center",
+                  backgroundColor: "#f0f0f0", 
+                  padding: 8, 
+                  borderRadius: 6, 
+                  marginBottom: 5 
+                }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "600" }}>{s.name}</Text>
+                    <Text style={{ color: "#333" }}>${s.price}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => removeService(s._id)}>
+                    <Text style={{ color: "red", fontWeight: "bold" }}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={{ color: "gray", fontStyle: "italic", marginBottom: 10 }}>
+                No services added yet
               </Text>
-            ))}
+            )}
+            
             {errors.servicesIncluded && (
-              <Text style={{ color: "red" }}>
+              <Text style={{ color: "red", marginBottom: 10 }}>
                 {errors.servicesIncluded.message}
               </Text>
             )}
@@ -553,18 +629,24 @@ export default function OffersScreen() {
                 padding: 12,
                 borderRadius: 8,
                 marginTop: 10,
+                opacity: modalLoading ? 0.7 : 1,
               }}
               onPress={handleSubmit(onSubmit)}
+              disabled={modalLoading}
             >
-              <Text
-                style={{
-                  color: "white",
-                  textAlign: "center",
-                  fontWeight: "600",
-                }}
-              >
-                Save Offer
-              </Text>
+              {modalLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text
+                  style={{
+                    color: "white",
+                    textAlign: "center",
+                    fontWeight: "600",
+                  }}
+                >
+                  Save Offer
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -573,6 +655,7 @@ export default function OffersScreen() {
                 reset();
                 setVisible(false);
               }}
+              disabled={modalLoading}
             >
               <Text style={{ textAlign: "center", color: "red" }}>Cancel</Text>
             </TouchableOpacity>

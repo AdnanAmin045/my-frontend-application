@@ -9,6 +9,9 @@ const DashboardLayout = () => {
       <View style={styles.stackContainer}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" options={{ title: "Dashboard" }} />
+          <Stack.Screen name="application" options={{ title: "Application" }} />
+          <Stack.Screen name="services" options={{ title: "Services" }} />
+          <Stack.Screen name="review" options={{ title: "Review" }} />
           {/* Add other screens here if needed */}
         </Stack>
       </View>

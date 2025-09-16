@@ -75,7 +75,6 @@ const Explore = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-
         // ✅ Updated grouping according to API response
         const grouped = response.data.groupedOffers.map((group) => ({
           serviceProvider: group.provider,
@@ -261,7 +260,7 @@ const Explore = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.header}>Nearby Service Providers</Text>
 
       <FlatList
@@ -286,10 +285,6 @@ const Explore = () => {
                   <Text style={styles.providerName}>
                     {item.serviceProvider.username}
                   </Text>
-                  <View style={styles.ratingContainer}>
-                    <Icon name="star" size={14} color="#FFD700" />
-                    <Text style={styles.ratingText}>4.8 (120 reviews)</Text>
-                  </View>
                 </View>
                 <Icon name="chevron-right" size={20} color="#999" />
               </View>
@@ -337,10 +332,6 @@ const Explore = () => {
                   <Text style={styles.providerModalName}>
                     {selectedProvider.serviceProvider.username}
                   </Text>
-                  <View style={styles.ratingContainer}>
-                    <Icon name="star" size={16} color="#FFD700" />
-                    <Text style={styles.ratingText}>4.8 (120 reviews)</Text>
-                  </View>
                 </View>
 
                 <View style={styles.providerModalDetails}>
@@ -361,14 +352,6 @@ const Explore = () => {
                       <Text style={styles.detailValue}>
                         {selectedProvider.serviceProvider.phoneNo}
                       </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.detailItem}>
-                    <Icon name="clock" size={18} color="#6200ea" />
-                    <View>
-                      <Text style={styles.detailLabel}>Business Hours</Text>
-                      <Text style={styles.detailValue}>9:00 AM - 6:00 PM</Text>
                     </View>
                   </View>
                 </View>
@@ -608,7 +591,7 @@ const Explore = () => {
             <Text style={styles.paymentAmount}>Total: ${calculateTotal()}</Text>
 
             <CardField
-              postalCodeEnabled={true}
+              postalCodeEnabled={false}
               placeholder={{ number: "4242 4242 4242 4242" }}
               cardStyle={styles.cardField}
               style={styles.cardContainer}
@@ -646,7 +629,7 @@ const Explore = () => {
           </View>
         </Animated.View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 

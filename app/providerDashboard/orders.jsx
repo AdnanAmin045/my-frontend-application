@@ -39,7 +39,7 @@ const measurementSchema = z.object({
   trouserLength: z.number({ required_error: "Trouser length is required" }),
   inseam: z.number({ required_error: "Inseam is required" }),
   neck: z.number({ required_error: "Neck is required" }),
-  notes: z.string().max(500, "Notes must not exceed 500 characters").optional(),
+  notes: z.string().max(500).optional(),
 });
 
 const OrdersManager = () => {
@@ -51,27 +51,22 @@ const OrdersManager = () => {
   const [measurementModal, setMeasurementModal] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm({
-    resolver: zodResolver(measurementSchema),
-    defaultValues: {
-      chest: 0,
-      waist: 0,
-      hips: 0,
-      shoulder: 0,
-      sleeveLength: 0,
-      shirtLength: 0,
-      trouserLength: 0,
-      inseam: 0,
-      neck: 0,
-      notes: "",
-    },
-  });
+  const { control, handleSubmit, formState: { errors }, reset, setValue } =
+    useForm({
+      resolver: zodResolver(measurementSchema),
+      defaultValues: {
+        chest: 0,
+        waist: 0,
+        hips: 0,
+        shoulder: 0,
+        sleeveLength: 0,
+        shirtLength: 0,
+        trouserLength: 0,
+        inseam: 0,
+        neck: 0,
+        notes: "",
+      },
+    });
 
   const fetchOrders = async () => {
     try {
@@ -82,12 +77,12 @@ const OrdersManager = () => {
       const response = await axios.get(`${API_URL}/orders/provider-orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Fetched Orders:", response.data.orders);
-      setOrders(response.data.orders.map(order => ({
-        ...order,
-        measurements: order.user?.measurements || null,
-      })));
-      console.log("Orders with Measurements:", orders);
+      setOrders(
+        response.data.orders.map((order) => ({
+          ...order,
+          measurements: order.user?.measurements || null,
+        }))
+      );
     } catch (err) {
       console.error(err);
       alert("Failed to load orders");
@@ -148,15 +143,9 @@ const OrdersManager = () => {
   const openMeasurementModal = (order) => {
     setSelectedOrder(order);
     if (order.measurements) {
-      setValue("chest", order.measurements.chest || 0);
-      setValue("waist", order.measurements.waist || 0);
-      setValue("hips", order.measurements.hips || 0);
-      setValue("shoulder", order.measurements.shoulder || 0);
-      setValue("sleeveLength", order.measurements.sleeveLength || 0);
-      setValue("shirtLength", order.measurements.shirtLength || 0);
-      setValue("trouserLength", order.measurements.trouserLength || 0);
-      setValue("inseam", order.measurements.inseam || 0);
-      setValue("neck", order.measurements.neck || 0);
+      Object.keys(order.measurements).forEach((key) =>
+        setValue(key, order.measurements[key] || 0)
+      );
       setValue("notes", order.measurements.notes || "");
     } else {
       reset();
@@ -164,21 +153,31 @@ const OrdersManager = () => {
     setMeasurementModal(true);
   };
 
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      if (i <= Math.floor(rating)) {
+        stars.push(<Icon key={i} name="star" size={18} color="#FFD700" />);
+      } else if (i - 0.5 === rating) {
+        stars.push(<Icon key={i} name="star-half-full" size={18} color="#FFD700" />);
+      } else {
+        stars.push(<Icon key={i} name="star-outline" size={18} color="#FFD700" />);
+      }
+    }
+    return <View style={{ flexDirection: "row", marginTop: 4 }}>{stars}</View>;
+  };
+
   const filteredOrders = orders
     .filter((o) => (filterStatus === "all" ? true : o.status === filterStatus))
-    .filter((o) =>
-      o.orderTrackingId.toLowerCase().includes(searchText.toLowerCase())
-    );
+    .filter((o) => o.orderTrackingId.toLowerCase().includes(searchText.toLowerCase()));
 
   if (loading) {
-    return (
-        <ActivityIndicator size="large" color="#6200ea" />
-    );
+    return <ActivityIndicator size="large" color="#6200ea" style={{ flex: 1, justifyContent: "center" }} />;
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Search Bar */}
+      {/* Search */}
       <TextInput
         style={styles.searchInput}
         placeholder="Search by Order ID"
@@ -187,48 +186,32 @@ const OrdersManager = () => {
       />
 
       {/* Status Filter */}
-      <ScrollView
-        horizontal
-        style={styles.filterContainer}
+      <ScrollView 
+        horizontal 
+        style={styles.filterContainer} 
         showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterContentContainer}
       >
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filterStatus === "all" && styles.activeFilter,
-          ]}
+        <TouchableOpacity 
+          style={[styles.filterButton, filterStatus === "all" && styles.activeFilter]} 
           onPress={() => setFilterStatus("all")}
         >
-          <Text
-            style={[
-              styles.filterText,
-              filterStatus === "all" && styles.activeFilterText,
-            ]}
-          >
-            All
-          </Text>
+          <Text style={[styles.filterText, filterStatus === "all" && styles.activeFilterText]}>All</Text>
         </TouchableOpacity>
         {statusOptions.map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.filterButton,
-              filterStatus === status && styles.activeFilter,
-            ]}
+          <TouchableOpacity 
+            key={status} 
+            style={[styles.filterButton, filterStatus === status && styles.activeFilter]} 
             onPress={() => setFilterStatus(status)}
           >
-            <Text
-              style={[
-                styles.filterText,
-                filterStatus === status && styles.activeFilterText,
-              ]}
-            >
+            <Text style={[styles.filterText, filterStatus === status && styles.activeFilterText]}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
+      {/* Orders List */}
       <FlatList
         data={filteredOrders}
         keyExtractor={(item) => item._id}
@@ -237,41 +220,39 @@ const OrdersManager = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.orderId}>Order: {item.orderTrackingId}</Text>
-              <Text style={[styles.status, { textTransform: "capitalize" }]}>
-                {item.status}
-              </Text>
+              <Text style={[styles.status, { textTransform: "capitalize" }]}>{item.status}</Text>
             </View>
 
             {item.services.map((s, i) => (
               <View key={i} style={styles.serviceRow}>
-                <Text style={styles.serviceName}>
-                  {s.name} x{s.quantity}
-                </Text>
+                <Text style={styles.serviceName}>{s.name} x{s.quantity}</Text>
                 <Text style={styles.servicePrice}>${s.price}</Text>
               </View>
             ))}
 
-            <Text style={styles.totalPayment}>
-              Total Payment: ${item.totalPayment.toFixed(2)}
-            </Text>
+            <Text style={styles.totalPayment}>Total Payment: ${item.totalPayment.toFixed(2)}</Text>
             <Text style={styles.address}>
-              {item.address.homeAddress} | {item.address.phoneNo} |{" "}
-              {item.address.email}
+              {item.address.homeAddress} | {item.address.phoneNo} | {item.address.email}
             </Text>
 
+            {/* Feedback Stars */}
+            {item.isFeedBackGiven && item.feedback?.length > 0 && (
+              <View style={styles.feedbackContainer}>
+                <Text style={styles.feedbackUser}>Feedback by: {item.user.username}</Text>
+                {renderStars(item.feedback[0].rating)}
+                {item.feedback[0].comment ? (
+                  <Text style={styles.feedbackComment}>{item.feedback[0].comment}</Text>
+                ) : null}
+              </View>
+            )}
+
             <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.statusButton}
-                onPress={() => openStatusModal(item)}
-              >
+              <TouchableOpacity style={styles.statusButton} onPress={() => openStatusModal(item)}>
                 <Icon name="update" size={20} color="#fff" />
                 <Text style={styles.buttonText}>Update Status</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.measureButton}
-                onPress={() => openMeasurementModal(item)}
-              >
+              <TouchableOpacity style={styles.measureButton} onPress={() => openMeasurementModal(item)}>
                 <Icon name="ruler" size={20} color="#fff" />
                 <Text style={styles.buttonText}>Measurement</Text>
               </TouchableOpacity>
@@ -284,29 +265,27 @@ const OrdersManager = () => {
       <Modal visible={statusModalVisible} transparent animationType="slide">
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Update Status for Order {selectedOrder?.orderTrackingId}</Text>
-            <ScrollView style={{ maxHeight: 300 }}>
-              {statusOptions.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={styles.statusOption}
-                  onPress={() => {
-                    updateStatus(selectedOrder.orderTrackingId, s);
-                    setStatusModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.statusText}>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <Text style={styles.modalTitle}>
+              Update Status for Order {selectedOrder?.orderTrackingId}
+            </Text>
+            {statusOptions.map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={styles.modalOption}
+                onPress={() => {
+                  updateStatus(selectedOrder.orderTrackingId, status);
+                  setStatusModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalOptionText}>{status}</Text>
+              </TouchableOpacity>
+            ))}
 
             <TouchableOpacity
-              style={[styles.cancelButton, styles.statusCancelButton]}
+              style={[styles.modalOption, { backgroundColor: "#ccc", marginTop: 10 }]}
               onPress={() => setStatusModalVisible(false)}
             >
-              <Text style={styles.buttonText}>Cancel</Text>
+              <Text style={styles.modalOptionText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -315,168 +294,63 @@ const OrdersManager = () => {
       {/* Measurement Modal */}
       <Modal visible={measurementModal} transparent animationType="slide">
         <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
-              {selectedOrder?.measurements ? "Edit Measurement" : "Add Measurement"} for Order {selectedOrder?.orderTrackingId}
-            </Text>
-            <ScrollView style={{ maxHeight: 400 }}>
-              <Controller
-                control={control}
-                name="chest"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Chest (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
+          <View style={[styles.modalContainer, { maxHeight: "90%" }]}>
+            <ScrollView>
+              <Text style={styles.modalTitle}>
+                Add / Edit Measurement for Order {selectedOrder?.orderTrackingId}
+              </Text>
+
+              {Object.keys(measurementSchema.shape).map((field) => {
+                if (field === "notes") {
+                  return (
+                    <Controller
+                      key={field}
+                      control={control}
+                      name={field}
+                      render={({ field: { onChange, value } }) => (
+                        <TextInput
+                          placeholder="Notes"
+                          style={[styles.input, { height: 80 }]}
+                          value={value}
+                          onChangeText={onChange}
+                          multiline
+                        />
+                      )}
+                    />
+                  );
+                }
+                return (
+                  <Controller
+                    key={field}
+                    control={control}
+                    name={field}
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={value.toString()}
+                        onChangeText={(val) => onChange(Number(val))}
+                      />
+                    )}
                   />
-                )}
-              />
-              {errors.chest && <Text style={styles.errorText}>{errors.chest.message}</Text>}
-              <Controller
-                control={control}
-                name="waist"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Waist (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.waist && <Text style={styles.errorText}>{errors.waist.message}</Text>}
-              <Controller
-                control={control}
-                name="hips"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Hips (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.hips && <Text style={styles.errorText}>{errors.hips.message}</Text>}
-              <Controller
-                control={control}
-                name="shoulder"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Shoulder (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.shoulder && <Text style={styles.errorText}>{errors.shoulder.message}</Text>}
-              <Controller
-                control={control}
-                name="sleeveLength"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Sleeve Length (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.sleeveLength && <Text style={styles.errorText}>{errors.sleeveLength.message}</Text>}
-              <Controller
-                control={control}
-                name="shirtLength"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Shirt Length (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.shirtLength && <Text style={styles.errorText}>{errors.shirtLength.message}</Text>}
-              <Controller
-                control={control}
-                name="trouserLength"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Trouser Length (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.trouserLength && <Text style={styles.errorText}>{errors.trouserLength.message}</Text>}
-              <Controller
-                control={control}
-                name="inseam"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Inseam (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.inseam && <Text style={styles.errorText}>{errors.inseam.message}</Text>}
-              <Controller
-                control={control}
-                name="neck"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Neck (in inches)"
-                    value={value ? value.toString() : ""}
-                    onChangeText={(text) => onChange(text ? parseFloat(text) : 0)}
-                    keyboardType="numeric"
-                  />
-                )}
-              />
-              {errors.neck && <Text style={styles.errorText}>{errors.neck.message}</Text>}
-              <Controller
-                control={control}
-                name="notes"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Notes (optional)"
-                    value={value || ""}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-              {errors.notes && <Text style={styles.errorText}>{errors.notes.message}</Text>}
-            </ScrollView>
-            <View style={styles.modalButtons}>
+                );
+              })}
+
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[styles.statusButton, { marginTop: 10 }]}
                 onPress={handleSubmit(saveMeasurement)}
               >
-                <Text style={styles.buttonText}>{selectedOrder?.measurements ? "Edit" : "Save"}</Text>
+                <Text style={styles.buttonText}>Save Measurement</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => {
-                  setMeasurementModal(false);
-                  reset();
-                }}
+                style={[styles.modalOption, { backgroundColor: "#ccc", marginTop: 10 }]}
+                onPress={() => setMeasurementModal(false)}
               >
-                <Text style={styles.buttonText}>Cancel</Text>
+                <Text style={styles.modalOptionText}>Cancel</Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -484,211 +358,191 @@ const OrdersManager = () => {
   );
 };
 
-export default OrdersManager;
-
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#f5f5f5", 
-    paddingTop: 10 
-  },
-  loaderContainer: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
+    padding: 10, 
+    backgroundColor: "#f5f5f5" 
   },
   searchInput: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 25,
-    marginHorizontal: 12,
-    marginVertical: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
     fontSize: 16,
   },
-  filterContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 8,
+  filterContainer: { 
+    marginBottom: 12,
+    maxHeight: 40,
+  },
+  filterContentContainer: {
+    alignItems: 'center',
+    paddingVertical: 2,
   },
   filterButton: {
-    paddingVertical: 12,
+    paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#eee",
     marginRight: 8,
-    minWidth: 70,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 36,
   },
   activeFilter: { 
     backgroundColor: "#6200ea" 
   },
   filterText: { 
-    color: "#1f2937", 
-    fontWeight: "600", 
-    fontSize: 13,
-    textAlign: "center",
-    lineHeight: 16,
+    color: "#555",
+    fontSize: 14,
   },
   activeFilterText: { 
-    color: "#fff" 
+    color: "#fff", 
+    fontWeight: "bold" 
   },
-  card: {
-    backgroundColor: "#fff",
-    marginHorizontal: 12,
-    marginVertical: 8,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 3,
+  card: { 
+    backgroundColor: "#fff", 
+    borderRadius: 10, 
+    padding: 16, 
+    marginBottom: 12, 
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  cardHeader: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
     marginBottom: 8,
+    alignItems: 'center',
   },
   orderId: { 
-    fontWeight: "700", 
-    fontSize: 16, 
-    color: "#1f2937" 
+    fontWeight: "bold", 
+    fontSize: 16,
+    flex: 1,
   },
   status: { 
-    fontWeight: "600", 
-    color: "#6200ea", 
-    fontSize: 14 
+    fontWeight: "bold", 
+    color: "#6200ea",
+    fontSize: 14,
   },
-  serviceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  serviceRow: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
     marginVertical: 4,
   },
   serviceName: { 
-    fontSize: 14, 
-    color: "#374151" 
+    fontSize: 14,
+    flex: 1,
   },
   servicePrice: { 
-    fontWeight: "600", 
-    color: "#1f2937" 
+    fontWeight: "bold",
+    marginLeft: 8,
   },
   totalPayment: { 
-    fontWeight: "700", 
-    marginTop: 8, 
-    color: "#1f2937" 
+    fontWeight: "bold", 
+    marginTop: 6,
+    fontSize: 15,
   },
   address: { 
+    fontStyle: "italic", 
     fontSize: 12, 
-    color: "#6b7280", 
-    marginTop: 4 
+    marginTop: 4,
+    color: '#666',
   },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  buttonRow: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
     marginTop: 12,
-    gap: 8,
   },
-  statusButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#28a745",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  statusButton: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#6200ea", 
+    padding: 10, 
+    borderRadius: 6,
     flex: 1,
-    justifyContent: "center",
+    marginRight: 6,
+    justifyContent: 'center',
   },
-  measureButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f39c12",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  measureButton: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#03a9f4", 
+    padding: 10, 
+    borderRadius: 6,
     flex: 1,
-    justifyContent: "center",
+    marginLeft: 6,
+    justifyContent: 'center',
   },
   buttonText: { 
     color: "#fff", 
-    fontWeight: "600", 
+    marginLeft: 6, 
+    fontWeight: "bold",
     fontSize: 14,
-    textAlign: "center",
   },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
+  modalBackground: { 
+    flex: 1, 
+    backgroundColor: "rgba(0,0,0,0.5)", 
+    justifyContent: "center", 
+    alignItems: "center" 
   },
   modalContainer: { 
+    width: "85%", 
     backgroundColor: "#fff", 
     borderRadius: 12, 
-    padding: 16 
+    padding: 20,
+    maxHeight: '80%',
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-    color: "#1f2937",
-    textAlign: "center",
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: "bold", 
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-    fontSize: 14,
+  modalOption: { 
+    padding: 12, 
+    backgroundColor: "#6200ea", 
+    borderRadius: 8, 
+    marginVertical: 6,
   },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-    marginTop: 12,
+  modalOptionText: { 
+    color: "#fff", 
+    textAlign: "center", 
+    fontWeight: "bold",
+    fontSize: 15,
   },
-  saveButton: {
-    backgroundColor: "#28a745",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flex: 1,
-    alignItems: "center",
+  input: { 
+    backgroundColor: "#f0f0f0", 
+    padding: 12, 
+    borderRadius: 8, 
+    marginVertical: 6, 
+    borderWidth: 1, 
+    borderColor: "#ccc",
+    fontSize: 16,
   },
-  cancelButton: {
-    backgroundColor: "#dc3545",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flex: 1,
-    alignItems: "center",
+  feedbackContainer: { 
+    marginTop: 10, 
+    backgroundColor: "#f9f9f9", 
+    padding: 10, 
+    borderRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFD700',
   },
-  statusCancelButton: {
-    marginTop: 12,
-    alignSelf: "center",
-    width: "60%",
-    justifyContent: "center",
+  feedbackUser: { 
+    fontWeight: "bold", 
+    fontSize: 13, 
+    marginBottom: 4,
   },
-  statusOption: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
-    alignItems: "center",
-  },
-  statusText: { 
-    fontSize: 16, 
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 12,
-    marginBottom: 8,
+  feedbackComment: { 
+    fontStyle: "italic", 
+    fontSize: 12, 
+    marginTop: 4, 
+    color: "#333",
   },
 });
+
+export default OrdersManager;

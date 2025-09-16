@@ -122,7 +122,6 @@ const RiderManagement = () => {
       } else {
         response = await axios.post(`${API_URL}/riders/create`, data, config);
       }
-
       closeModal();
       fetchRiders();
       Alert.alert("Success", response.data.message || "Operation successful");
