@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
 import { API_URL } from "../../baseURL";
+import { useRouter } from "expo-router";
 
 // Zod schema
 const offerSchema = z.object({
@@ -34,12 +35,15 @@ const offerSchema = z.object({
 });
 
 export default function OffersScreen() {
+  const router = useRouter();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
   const [servicePrice, setServicePrice] = useState("");
+  const [profileActive, setProfileActive] = useState(false); // ✅ Profile toggle state
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const {
     control,
@@ -80,7 +84,9 @@ export default function OffersScreen() {
     try {
       const token = await AsyncStorage.getItem("user");
       const accessToken = token ? JSON.parse(token).accessToken : null;
-      if (!accessToken) return;
+      if (!accessToken) {
+        router.push("/auth/login");
+      }
 
       const response = await axios.get(`${API_URL}/offers/getAll`, {
         headers: {
@@ -97,9 +103,85 @@ export default function OffersScreen() {
     }
   };
 
+  // ✅ Fetch Profile Status
+  const fetchProfileStatus = async () => {
+    try {
+      setProfileLoading(true);
+      const token = await AsyncStorage.getItem("user");
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+      if (!accessToken) {
+        router.push("/auth/login");
+      }
+
+      const response = await axios.get(`${API_URL}/provider/profile`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (response.data?.data?.isActive !== undefined) {
+        setProfileActive(response.data.data.isActive);
+      }
+    } catch (err) {
+      console.log(
+        "Error fetching profile status:",
+        err.response?.data || err.message
+      );
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const toggleProfileStatus = async () => {
+    try {
+      setProfileLoading(true);
+      const token = await AsyncStorage.getItem("user");
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+      if (!accessToken) {
+        router.push("/auth/login");
+      }
+
+      const response = await axios.patch(
+        `${API_URL}/offers/toggle-status`,
+        { isActive: !profileActive },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (response.status === 200) {
+        setProfileActive(!profileActive);
+      }
+    } catch (error) {
+      console.log(
+        error.response?.data || error.message
+      );
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const getToggleProfileStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem("user");
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+      if (!accessToken) {
+        router.push("/auth/login");
+      }
+      const res = await axios.get(`${API_URL}/offers/getProviderProfileStatus`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setProfileActive(res.data.status);
+    } catch (error) {
+      console.error("Error fetching profile status:", error);
+    }
+  };
+
   useEffect(() => {
+    getToggleProfileStatus();
     fetchOffers();
     fetchServices();
+    fetchProfileStatus();
   }, []);
 
   // ✅ Toggle Offer Active Status
@@ -172,6 +254,31 @@ export default function OffersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 10 }}>
+      {/* Add Offer Button */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "white",
+          padding: 12,
+          borderRadius: 10,
+          marginBottom: 12,
+        }}
+      >
+        <Text style={{ fontSize: 16, fontWeight: "600" }}>Profile Active</Text>
+        {profileLoading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <Switch
+            value={profileActive}
+            onValueChange={toggleProfileStatus}
+            thumbColor={profileActive ? "#6200ee" : "#ccc"}
+            trackColor={{ true: "#bb86fc", false: "#e0e0e0" }}
+          />
+        )}
+      </View>
+
       {/* Add Offer Button */}
       <TouchableOpacity
         style={{

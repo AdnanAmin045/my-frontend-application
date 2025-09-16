@@ -494,10 +494,10 @@ const Explore = () => {
               {paymentLoading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <>
                   <Icon name="lock" size={16} color="#FFF" />
                   <Text style={styles.payButtonText}>Pay Securely</Text>
-                </View>
+                </>
               )}
             </TouchableOpacity>
 

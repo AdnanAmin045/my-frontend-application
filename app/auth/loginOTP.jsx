@@ -41,9 +41,6 @@ export default function OtpVerification() {
         role,
         otp,
       });
-
-      console.log("Backend response data:", data.data);
-
       // Extract tokens and role from backend response
       const { accessToken, refreshToken, role: userRole } = data.data;
 
@@ -53,12 +50,10 @@ export default function OtpVerification() {
         JSON.stringify({ accessToken, refreshToken, role: userRole })
       );
 
-      console.log("Role after verification:", userRole);
 
       // Navigate based on role
       router.push(userRole === "customer" ? "/userDashboard" : "/providerDashboard");
     } catch (error) {
-      console.log("OTP verification error:", error.response?.data || error.message);
       setSnackbar({
         visible: true,
         message: error?.response?.data?.message || "Verification failed",

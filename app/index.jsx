@@ -40,6 +40,7 @@ export default function Index() {
   const handleDashboardNavigation = () => {
     if (userRole === "customer") router.replace("/userDashboard");
     if (userRole === "provider") router.replace("/providerDashboard");
+    if  (userRole=== "Admin")   router.replace("/adminDashboard")
   };
 
   const handleLogout = async () => {

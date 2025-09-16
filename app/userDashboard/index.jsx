@@ -33,26 +33,6 @@ export default function UserDashboardScreen() {
     },
   ];
 
-  const recentActivities = [
-    {
-      id: '1',
-      title: 'Order #1234 is ready for pickup',
-      time: '2 hours ago',
-      color: 'bg-blue-500',
-    },
-    {
-      id: '2',
-      title: 'Order #1233 delivered successfully',
-      time: '1 day ago',
-      color: 'bg-green-500',
-    },
-    {
-      id: '3',
-      title: 'Payment received for Order #1232',
-      time: '2 days ago',
-      color: 'bg-orange-500',
-    },
-  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -85,41 +65,6 @@ export default function UserDashboardScreen() {
             </Animated.View>
           ))}
         </View>
-
-        {/* Quick Stats */}
-        {/* <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Overview</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Active Orders</Text>
-              <Text style={[styles.statValue, { color: '#3B82F6' }]}>3</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Completed Orders</Text>
-              <Text style={[styles.statValue, { color: '#10B981' }]}>12</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Total Spent</Text>
-              <Text style={[styles.statValue, { color: '#8B5CF6' }]}>$450</Text>
-            </View>
-          </View>
-        </Animated.View> */}
-
-        {/* Recent Activity */}
-        <Animated.View entering={FadeInDown.delay(500).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <View style={styles.activityContainer}>
-            {recentActivities.map((activity, index) => (
-              <View key={activity.id} style={styles.activityItem}>
-                <View style={[styles.activityDot, { backgroundColor: activity.color }]} />
-                <View style={styles.activityContent}>
-                  <Text style={styles.activityTitle}>{activity.title}</Text>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

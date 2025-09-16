@@ -162,7 +162,7 @@ const Signup = () => {
           duration={2000}
           style={{ backgroundColor: "green" }}
         >
-          ✅ Account created successfully!
+          Account created successfully!
         </Snackbar>
       </ScrollView>
     </KeyboardAvoidingView>

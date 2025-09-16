@@ -1,3 +1,4 @@
+// ✅ UPDATED COMPONENT
 import React, { useState, useEffect } from "react";
 import {
   KeyboardAvoidingView,
@@ -30,7 +31,6 @@ import { API_URL } from "../../baseURL";
 
 const { width } = Dimensions.get("window");
 
-// ✅ Zod Schema
 const signUpSchema = z.object({
   username: z.string().min(1, "Business Name is required"),
   email: z.string().email("Invalid email"),
@@ -78,16 +78,12 @@ const SignUpProvider = () => {
     },
   });
 
-  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       try {
         setServicesLoading(true);
         const response = await axios.get(`${API_URL}/services/getAll`);
-        const services = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
-        setAllServices(services);
+        setAllServices(Array.isArray(response.data.data) ? response.data.data : []);
       } catch (error) {
         Alert.alert("Error", "Failed to fetch services. Please try again.");
       } finally {
@@ -97,7 +93,6 @@ const SignUpProvider = () => {
     fetchServices();
   }, []);
 
-  // Auto location
   useEffect(() => {
     (async () => {
       try {
@@ -117,7 +112,6 @@ const SignUpProvider = () => {
     })();
   }, [setValue]);
 
-  // Select / Remove service
   const handleSelectService = (service) => {
     const currentServices = getValues("services");
     if (!currentServices.includes(service._id)) {
@@ -125,6 +119,7 @@ const SignUpProvider = () => {
     }
     setMenuVisible(false);
   };
+
   const removeService = (id) => {
     setValue(
       "services",
@@ -132,19 +127,17 @@ const SignUpProvider = () => {
     );
   };
 
-  // Toggle menu visibility
-  const toggleMenu = () => {
-    setMenuVisible((prev) => !prev);
-  };
+  const toggleMenu = () => setMenuVisible((prev) => !prev);
 
-  // Submit API
   const onSubmit = async (data) => {
     setLoading(true);
+    console.log("Hello")
     try {
       const response = await axios.post(
         `${API_URL}/users/register/provider`,
         data
       );
+      console.log("Response: ",response)
       if (response.status === 201) {
         router.push("/auth/login");
       } else {
@@ -173,25 +166,8 @@ const SignUpProvider = () => {
             </View>
 
             {/* Business Name */}
-            <InputField
-              control={control}
-              name="username"
-              label="Business Name"
-              placeholder="Enter Business Name"
-              error={errors.username?.message}
-            />
-
-            {/* Email */}
-            <InputField
-              control={control}
-              name="email"
-              label="Email"
-              placeholder="Enter Email"
-              keyboardType="email-address"
-              error={errors.email?.message}
-            />
-
-            {/* Password */}
+            <InputField control={control} name="username" label="Business Name" placeholder="Enter Business Name" error={errors.username?.message} />
+            <InputField control={control} name="email" label="Email" placeholder="Enter Email" keyboardType="email-address" error={errors.email?.message} />
             <InputField
               control={control}
               name="password"
@@ -208,16 +184,7 @@ const SignUpProvider = () => {
               )}
               error={errors.password?.message}
             />
-
-            {/* Phone */}
-            <InputField
-              control={control}
-              name="phoneNo"
-              label="Phone Number"
-              placeholder="Enter Phone Number"
-              keyboardType="phone-pad"
-              error={errors.phoneNo?.message}
-            />
+            <InputField control={control} name="phoneNo" label="Phone Number" placeholder="Enter Phone Number" keyboardType="phone-pad" error={errors.phoneNo?.message} />
 
             {/* Services Dropdown */}
             <View style={styles.inputContainer}>
@@ -226,10 +193,7 @@ const SignUpProvider = () => {
                 visible={menuVisible}
                 onDismiss={() => setMenuVisible(false)}
                 anchor={
-                  <TouchableOpacity
-                    style={styles.dropdownButton}
-                    onPress={toggleMenu}
-                  >
+                  <TouchableOpacity style={styles.dropdownButton} onPress={toggleMenu}>
                     <Text style={styles.dropdownText}>
                       {servicesLoading
                         ? "Loading services..."
@@ -237,11 +201,7 @@ const SignUpProvider = () => {
                         ? `Selected: ${selectedServices.length}`
                         : "Choose Services"}
                     </Text>
-                    <Ionicons
-                      name={menuVisible ? "chevron-up" : "chevron-down"}
-                      size={20}
-                      color="#6B7280"
-                    />
+                    <Ionicons name={menuVisible ? "chevron-up" : "chevron-down"} size={20} color="#6B7280" />
                   </TouchableOpacity>
                 }
               >
@@ -249,31 +209,22 @@ const SignUpProvider = () => {
                   <Menu.Item title="Loading..." disabled />
                 ) : allServices.length > 0 ? (
                   allServices.map((service) => (
-                    <Menu.Item
-                      key={service._id}
-                      onPress={() => handleSelectService(service)}
-                      title={service.name}
-                    />
+                    <Menu.Item key={service._id} onPress={() => handleSelectService(service)} title={service.name} />
                   ))
                 ) : (
                   <Menu.Item title="No services available" disabled />
                 )}
               </Menu>
-              {errors.services && (
-                <Text style={styles.errorText}>{errors.services.message}</Text>
-              )}
+              {errors.services && <Text style={styles.errorText}>{errors.services.message}</Text>}
             </View>
 
-            {/* Selected Service Chips */}
             {selectedServices.length > 0 && (
               <View style={styles.serviceTagsContainer}>
                 {selectedServices.map((id) => {
                   const service = allServices.find((s) => s._id === id);
                   return (
                     <View key={id} style={styles.serviceTag}>
-                      <Text style={styles.serviceTagText}>
-                        {service?.name || "Unknown"}
-                      </Text>
+                      <Text style={styles.serviceTagText}>{service?.name || "Unknown"}</Text>
                       <TouchableOpacity onPress={() => removeService(id)}>
                         <Ionicons name="close-circle" size={18} color="#FFF" />
                       </TouchableOpacity>
@@ -283,41 +234,17 @@ const SignUpProvider = () => {
               </View>
             )}
 
-            {/* Shop Address */}
-            <InputField
-              control={control}
-              name="shopAddress"
-              label="Shop Address"
-              placeholder="Enter Shop Address"
-              multiline
-              error={errors.shopAddress?.message}
-            />
+            <InputField control={control} name="shopAddress" label="Shop Address" placeholder="Enter Shop Address" multiline error={errors.shopAddress?.message} />
 
-            {/* Button Container */}
+            {/* ✅ FULL-WIDTH BUTTONS */}
             <View style={styles.buttonContainer}>
-              {/* Submit Button */}
-              <TouchableOpacity
-                style={[styles.signUpButton, loading && styles.disabledButton]}
-                onPress={handleSubmit(onSubmit)}
-                disabled={loading}
-              >
-                <LinearGradient
-                  colors={["#8A63D2", "#A78BFA"]}
-                  style={styles.signUpButtonGradient}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <Text style={styles.signUpButtonText}>Sign Up as Provider</Text>
-                  )}
+              <TouchableOpacity style={[styles.signUpButton, loading && styles.disabledButton]} onPress={handleSubmit(onSubmit)} disabled={loading}>
+                <LinearGradient colors={["#8A63D2", "#A78BFA"]} style={styles.signUpButtonGradient}>
+                  {loading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.signUpButtonText}>Sign Up as Provider</Text>}
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Login Button */}
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={() => router.push("/auth/login")}
-              >
+              <TouchableOpacity style={styles.loginButton} onPress={() => router.push("/auth/login")}>
                 <Text style={styles.loginButtonText}>Login</Text>
               </TouchableOpacity>
             </View>
@@ -328,18 +255,7 @@ const SignUpProvider = () => {
   );
 };
 
-// ✅ Reusable Input Component
-const InputField = ({
-  control,
-  name,
-  label,
-  placeholder,
-  keyboardType,
-  secureTextEntry,
-  multiline,
-  rightIcon,
-  error,
-}) => (
+const InputField = ({ control, name, label, placeholder, keyboardType, secureTextEntry, multiline, rightIcon, error }) => (
   <View style={styles.inputContainer}>
     <Text style={styles.label}>{label}</Text>
     <Controller
@@ -364,132 +280,32 @@ const InputField = ({
 );
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 16,
-    alignItems: "center",
-  },
-  card: {
-    width: width > 500 ? 450 : "100%",
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    padding: 24,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1F2937",
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: "#FFF",
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  dropdownButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    backgroundColor: "#FFF",
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: "#1F2937",
-  },
-  serviceTagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-    gap: 8,
-  },
-  serviceTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#8A63D2",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  serviceTagText: {
-    fontSize: 14,
-    color: "#FFF",
-    marginRight: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: "#EF4444",
-    marginTop: 4,
-  },
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  scrollContent: { flexGrow: 1, padding: 16, alignItems: "center" },
+  card: { width: width > 500 ? 450 : "100%", backgroundColor: "#FFF", borderRadius: 12, padding: 24, elevation: 3 },
+  header: { alignItems: "center", marginBottom: 20 },
+  headerTitle: { fontSize: 28, fontWeight: "700", color: "#1F2937" },
+  headerSubtitle: { fontSize: 16, color: "#6B7280", marginTop: 4 },
+  inputContainer: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: "600", color: "#1F2937", marginBottom: 8 },
+  input: { backgroundColor: "#FFF", borderRadius: 8, fontSize: 16 },
+  dropdownButton: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 8, backgroundColor: "#FFF" },
+  dropdownText: { fontSize: 16, color: "#1F2937" },
+  serviceTagsContainer: { flexDirection: "row", flexWrap: "wrap", marginTop: 8, gap: 8 },
+  serviceTag: { flexDirection: "row", alignItems: "center", backgroundColor: "#8A63D2", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
+  serviceTagText: { fontSize: 14, color: "#FFF", marginRight: 8 },
+  errorText: { fontSize: 14, color: "#EF4444", marginTop: 4 },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 24,
+    flexDirection: "column",
     gap: 12,
+    marginTop: 24,
   },
-  signUpButton: {
-    flex: 1,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  signUpButtonGradient: {
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  signUpButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFF",
-  },
-  loginButton: {
-    flex: 1,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#8A63D2",
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF",
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#8A63D2",
-  },
+  signUpButton: { width: "100%", borderRadius: 8, overflow: "hidden" },
+  disabledButton: { opacity: 0.6 },
+  signUpButtonGradient: { padding: 16, alignItems: "center", justifyContent: "center" },
+  signUpButtonText: { fontSize: 16, fontWeight: "600", color: "#FFF" },
+  loginButton: { width: "100%", borderRadius: 8, borderWidth: 1, borderColor: "#8A63D2", padding: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF" },
+  loginButtonText: { fontSize: 16, fontWeight: "600", color: "#8A63D2" },
 });
 
 export default SignUpProvider;

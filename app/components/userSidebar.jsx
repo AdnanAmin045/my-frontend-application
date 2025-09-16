@@ -2,7 +2,7 @@ import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from "react-nati
 import { Link, usePathname } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const userSidebarItems = [
   { href: "/", icon: "home", label: "Home" },
@@ -14,30 +14,34 @@ const userSidebarItems = [
 
 export default function UserSidebar() {
   const pathname = usePathname();
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.menuContainer}>
         {userSidebarItems.map((item) => {
           const isActive = pathname === item.href;
-          
+
           return (
             <Link key={item.href} href={item.href} asChild>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.iconContainer, 
-                  isActive && styles.activeIconContainer
+                  styles.iconContainer,
+                  isActive && styles.activeIconContainer,
                 ]}
               >
-                <FontAwesome5 
-                  name={item.icon} 
-                  size={22} 
-                  color={isActive ? "#4A90E2" : "#9CA3AF"} 
-                />
-                <Text style={[
-                  styles.label, 
-                  isActive && styles.activeLabel
-                ]}>
+                <View
+                  style={[
+                    styles.iconWrapper,
+                    isActive && styles.activeIconWrapper,
+                  ]}
+                >
+                  <FontAwesome5
+                    name={item.icon}
+                    size={20}
+                    color={isActive ? "#FFFFFF" : "#9CA3AF"}
+                  />
+                </View>
+                <Text style={[styles.label, isActive && styles.activeLabel]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -73,23 +77,34 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 12,
     minWidth: 70,
   },
   activeIconContainer: {
     backgroundColor: "rgba(59, 130, 246, 0.1)",
+    borderRadius: 12,
+  },
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    marginBottom: 6,
+  },
+  activeIconWrapper: {
+    backgroundColor: "#3B82F6",
   },
   label: {
-    color: "#9CA3AF",
+    color: "#D1D5DB",
     fontSize: 12,
     fontWeight: "500",
-    marginTop: 6,
     textAlign: "center",
   },
   activeLabel: {
-    color: "#4A90E2",
+    color: "#3B82F6",
     fontWeight: "600",
   },
 });

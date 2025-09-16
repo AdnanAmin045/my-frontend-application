@@ -9,6 +9,8 @@ export default function ProviderDashboardLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" options={{ title: "Dashboard" }} />
           <Stack.Screen name="orders" options={{ title: "Orders" }} />
+          <Stack.Screen name="offers" options={{ title: "Offers" }} />
+          <Stack.Screen name="riders" options={{ title: "Riders" }} />
         </Stack>
         <ProviderSidebar />
       </SafeAreaView>
