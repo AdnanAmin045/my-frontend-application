@@ -11,6 +11,7 @@ import {
   TextInput,
   Animated,
   Alert,
+  Image,
 } from "react-native";
 import AnimatedReanimated, { FadeInUp } from "react-native-reanimated";
 import * as Location from "expo-location";
@@ -34,10 +35,13 @@ const orderSchema = z.object({
 });
 
 const Explore = () => {
+  const [serviceProviders, setServiceProviders] = useState([]);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [providersLoading, setProvidersLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -47,37 +51,62 @@ const Explore = () => {
   const [errors, setErrors] = useState({});
   const [cardDetails, setCardDetails] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [view, setView] = useState("providers"); // "providers" or "offers"
   const { confirmPayment } = useStripe();
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setErrors({ general: "Location permission is required." });
-          return;
-        }
-
-        let location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        const user = await AsyncStorage.getItem("user");
-        const token = user ? JSON.parse(user).accessToken : null;
-        const response = await axios.get(`${API_URL}/offers/nearby`, {
-          params: { lat: latitude, lng: longitude },
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setOffers(response.data.offers);
-      } catch (err) {
-        console.error(err);
-        setErrors({ general: "Failed to load offers." });
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchServiceProviders();
   }, []);
+
+  const fetchServiceProviders = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrors({ general: "Location permission is required." });
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+      const user = await AsyncStorage.getItem("user");
+      const token = user ? JSON.parse(user).accessToken : null;
+      
+      const response = await axios.get(`${API_URL}/providers/nearby`, {
+        params: { lat: latitude, lng: longitude },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setServiceProviders(response.data.providers);
+    } catch (err) {
+      console.error(err);
+      setErrors({ general: "Failed to load service providers." });
+    } finally {
+      setProvidersLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const fetchProviderOffers = async (providerId) => {
+    try {
+      setLoading(true);
+      const user = await AsyncStorage.getItem("user");
+      const token = user ? JSON.parse(user).accessToken : null;
+      
+      const response = await axios.get(`${API_URL}/offers/provider/${providerId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setOffers(response.data.offers);
+      setView("offers");
+    } catch (err) {
+      console.error(err);
+      setErrors({ general: "Failed to load offers." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (paymentModalVisible) {
@@ -241,7 +270,13 @@ const Explore = () => {
     setPaymentLoading(false);
   };
 
-  if (loading) {
+  const goBackToProviders = () => {
+    setView("providers");
+    setSelectedProvider(null);
+    setOffers([]);
+  };
+
+  if (providersLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#6200ea" />
@@ -251,68 +286,141 @@ const Explore = () => {
   }
 
   return (
-    <View>
-      <FlatList
-        data={offers}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item, index }) => (
-          <AnimatedReanimated.View
-            entering={FadeInUp.delay(index * 100).springify()}
-          >
-            <View style={styles.card}>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/components/ProviderHistory",
-                    params: { providerId: item.serviceProvider._id },
-                  })
-                }
+    <View style={styles.container}>
+      {view === "providers" ? (
+        <>
+          <Text style={styles.sectionTitle}>Nearby Service Providers</Text>
+          <FlatList
+            data={serviceProviders}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <AnimatedReanimated.View
+                entering={FadeInUp.delay(index * 100).springify()}
+                style={styles.animatedView}
               >
-                <Text style={styles.offerTitle}>{item.title}</Text>
-                <Text style={styles.username}>
-                  {item.serviceProvider.username}
-                </Text>
-                <Text style={styles.providerInfo}>
-                  {item.serviceProvider.shopAddress} |{" "}
-                  {item.serviceProvider.phoneNo}
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.offerDescription}>{item.description}</Text>
-              {item.discountPercentage > 0 && (
-                <Text style={styles.discount}>
-                  Discount: {item.discountPercentage}% Off
-                </Text>
-              )}
-              <View style={styles.divider} />
-              {item.servicesIncluded.map((service, i) => (
-                <View key={i} style={styles.serviceRow}>
-                  <Text style={styles.serviceName}>{service.name}</Text>
-                  <Text style={styles.servicePrice}>${service.price}</Text>
-                </View>
-              ))}
-              <View style={styles.divider} />
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => {
-                  setSelectedOffer(item);
-                  setQuantities(
-                    item.servicesIncluded.reduce(
-                      (acc, service) => ({
-                        ...acc,
-                        [service.name]: 1,
-                      }),
-                      {}
-                    )
-                  );
-                  setModalVisible(true);
-                }}
-              >
-                <Text style={styles.actionText}>Take Service</Text>
-              </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.providerCard}
+                  onPress={() => {
+                    setSelectedProvider(item);
+                    fetchProviderOffers(item._id);
+                  }}
+                >
+                  <View style={styles.profileHeader}>
+                    {item.profilePicture ? (
+                      <Image 
+                        source={{ uri: item.profilePicture }} 
+                        style={styles.profileImage}
+                      />
+                    ) : (
+                      <View style={styles.profileImagePlaceholder}>
+                        <Icon name="user" size={24} color="#fff" />
+                      </View>
+                    )}
+                    <View style={styles.providerInfo}>
+                      <Text style={styles.providerName}>{item.username}</Text>
+                      <Text style={styles.providerRating}>
+                        <Icon name="star" size={14} color="#FFD700" /> {item.rating || "4.5"}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.providerDetails}>
+                    <View style={styles.detailRow}>
+                      <Icon name="phone" size={14} color="#6200ea" />
+                      <Text style={styles.detailText}>{item.phoneNo}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Icon name="map-marker-alt" size={14} color="#6200ea" />
+                      <Text style={styles.detailText} numberOfLines={1}>
+                        {item.shopAddress}
+                      </Text>
+                    </View>
+                    {item.services && (
+                      <View style={styles.detailRow}>
+                        <Icon name="tools" size={14} color="#6200ea" />
+                        <Text style={styles.detailText}>
+                          Services: {item.services.join(", ")}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  <View style={styles.viewOffersButton}>
+                    <Text style={styles.viewOffersText}>View Offers</Text>
+                    <Icon name="arrow-right" size={14} color="#fff" />
+                  </View>
+                </TouchableOpacity>
+              </AnimatedReanimated.View>
+            )}
+          />
+        </>
+      ) : (
+        <>
+          <View style={styles.offersHeader}>
+            <TouchableOpacity onPress={goBackToProviders} style={styles.backButton}>
+              <Icon name="arrow-left" size={20} color="#6200ea" />
+              <Text style={styles.backText}>Back to Providers</Text>
+            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>
+              Offers from {selectedProvider?.username}
+            </Text>
+          </View>
+
+          {loading ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#6200ea" />
             </View>
-          </AnimatedReanimated.View>
-        )}
-      />
+          ) : (
+            <FlatList
+              data={offers}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item, index }) => (
+                <AnimatedReanimated.View
+                  entering={FadeInUp.delay(index * 100).springify()}
+                  style={styles.animatedView}
+                >
+                  <View style={styles.card}>
+                    <Text style={styles.offerTitle}>{item.title}</Text>
+                    <Text style={styles.offerDescription}>{item.description}</Text>
+                    {item.discountPercentage > 0 && (
+                      <Text style={styles.discount}>
+                        Discount: {item.discountPercentage}% Off
+                      </Text>
+                    )}
+                    <View style={styles.divider} />
+                    {item.servicesIncluded.map((service, i) => (
+                      <View key={i} style={styles.serviceRow}>
+                        <Text style={styles.serviceName}>{service.name}</Text>
+                        <Text style={styles.servicePrice}>${service.price}</Text>
+                      </View>
+                    ))}
+                    <View style={styles.divider} />
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => {
+                        setSelectedOffer(item);
+                        setQuantities(
+                          item.servicesIncluded.reduce(
+                            (acc, service) => ({
+                              ...acc,
+                              [service.name]: 1,
+                            }),
+                            {}
+                          )
+                        );
+                        setModalVisible(true);
+                      }}
+                    >
+                      <Text style={styles.actionText}>Take Service</Text>
+                    </TouchableOpacity>
+                  </View>
+                </AnimatedReanimated.View>
+              )}
+            />
+          )}
+        </>
+      )}
+
       {/* Order Input Modal */}
       <Modal
         animationType="slide"
@@ -417,7 +525,7 @@ const Explore = () => {
           </ScrollView>
         </View>
       </Modal>
-      {/* Payment Modal */}
+
       {/* Payment Modal */}
       <Modal
         transparent={true}
@@ -425,7 +533,6 @@ const Explore = () => {
         animationType="none"
         onRequestClose={handleCancel}
       >
-        {/* Overlay press will ALWAYS close modal now */}
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
@@ -437,7 +544,6 @@ const Explore = () => {
               { transform: [{ translateY: slideAnim }] },
             ]}
           >
-            {/* Header with close button */}
             <View style={styles.header}>
               <Text style={styles.modalTitle}>Secure Payment</Text>
               <TouchableOpacity onPress={handleCancel}>
@@ -445,13 +551,11 @@ const Explore = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Amount */}
             <View style={styles.amountContainer}>
               <Text style={styles.amountLabel}>Total Amount</Text>
               <Text style={styles.amountValue}>${calculateTotal()}</Text>
             </View>
 
-            {/* Card Field */}
             <Text style={styles.cardLabel}>Card Information</Text>
             <View
               style={[
@@ -481,7 +585,6 @@ const Explore = () => {
               <Text style={styles.errorText}>{errors.payment}</Text>
             )}
 
-            {/* Pay Button */}
             <TouchableOpacity
               style={[
                 styles.payButton,
@@ -501,7 +604,6 @@ const Explore = () => {
               )}
             </TouchableOpacity>
 
-            {/* Security Info */}
             <View style={styles.securityInfo}>
               <Icon name="shield-alt" size={14} color="#10B981" />
               <Text style={styles.securityText}>Payments are 100% secure</Text>
@@ -514,12 +616,120 @@ const Explore = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 50,
   },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
+    margin: 16,
+    marginBottom: 8,
+  },
+  animatedView: {
+    // This style will be applied to the AnimatedReanimated.View
+  },
+  // Provider Card Styles
+  providerCard: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 12,
+  },
+  profileImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 12,
+    backgroundColor: "#6200ea",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 4,
+  },
+  providerRating: {
+    fontSize: 14,
+    color: "#666",
+  },
+  providerDetails: {
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  detailText: {
+    fontSize: 14,
+    color: "#555",
+    marginLeft: 8,
+    flex: 1,
+  },
+  viewOffersButton: {
+    flexDirection: "row",
+    backgroundColor: "#6200ea",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-end",
+  },
+  viewOffersText: {
+    color: "#ffffff",
+    fontWeight: "600",
+    fontSize: 14,
+    marginRight: 8,
+  },
+  // Offers Header
+  offersHeader: {
+    padding: 16,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  backText: {
+    color: "#6200ea",
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  // Offer Card Styles
   card: {
     marginHorizontal: 16,
     marginVertical: 8,
@@ -537,17 +747,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1a1a1a",
     marginBottom: 4,
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 2,
-  },
-  providerInfo: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 12,
   },
   offerDescription: {
     fontSize: 14,

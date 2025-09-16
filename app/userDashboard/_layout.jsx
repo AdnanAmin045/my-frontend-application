@@ -5,18 +5,18 @@ import { View } from 'react-native';
 
 export default function UserDashboardLayout() {
   return (
-    <View style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#f2f2f2" }}>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#f2f2f2" }}>
+        <View style={{ flex: 1 }}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ title: "UserDashboard" }} />
             <Stack.Screen name="explore" options={{ title: "Explore" }} />
             {/* <Stack.Screen name="profile" options={{ title: "profile" }} />
-        <Stack.Screen name="service-selection" options={{ title: "ServiceSelection" }} /> */}
+            <Stack.Screen name="service-selection" options={{ title: "ServiceSelection" }} /> */}
           </Stack>
           <UserSidebar />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }

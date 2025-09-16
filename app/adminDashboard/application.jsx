@@ -105,14 +105,28 @@ export default function ApplicationsPage() {
     let matchesFilter = true;
     if (filterStatus === "Approved")
       matchesFilter = app.approvalFromAdmin === true;
-    else if (filterStatus === "Rejected")
-      matchesFilter = app.approvalFromAdmin === false;
     else if (filterStatus === "Pending")
       matchesFilter =
-        app.approvalFromAdmin === null || app.approvalFromAdmin === undefined;
+        app.approvalFromAdmin === false ||
+        app.approvalFromAdmin === null ||
+        app.approvalFromAdmin === undefined;
 
     return matchesSearch && matchesFilter;
   });
+
+  // Get status text and color
+  const getStatusInfo = (approvalStatus) => {
+    if (approvalStatus === true) {
+      return { text: "Approved", color: "#4CAF50" };
+    } else if (
+      approvalStatus === false ||
+      approvalStatus === null ||
+      approvalStatus === undefined
+    ) {
+      return { text: "Pending", color: "#FF9800" };
+    }
+    return { text: "Unknown", color: "#9E9E9E" };
+  };
 
   return (
     <ScrollView
@@ -140,7 +154,7 @@ export default function ApplicationsPage() {
       </View>
 
       <View style={styles.filterContainer}>
-        {["All", "Approved", "Rejected", "Pending"].map((status) => (
+        {["All", "Approved", "Pending"].map((status) => (
           <TouchableOpacity
             key={status}
             style={[
@@ -172,69 +186,117 @@ export default function ApplicationsPage() {
           </Text>
         </View>
       ) : (
-        filteredApplications.map((app) => (
-          <View key={app._id} style={styles.card}>
-            <View style={styles.cardContent}>
-              <View style={styles.profileContainer}>
-                <Image
-                  source={{
-                    uri:
-                      app.profilePic ||
-                      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-                  }}
-                  style={styles.profilePic}
-                />
-                {app.approvalFromAdmin === null ||
-                app.approvalFromAdmin === undefined ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>New</Text>
+        filteredApplications.map((app) => {
+          const statusInfo = getStatusInfo(app.approvalFromAdmin);
+
+          return (
+            <View key={app._id} style={styles.card}>
+              <View style={styles.cardContent}>
+                <View style={styles.profileContainer}>
+                  <Image
+                    source={{
+                      uri:
+                        app.profilePic ||
+                        "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+                    }}
+                    style={styles.profilePic}
+                  />
+                </View>
+
+                <View style={styles.detailsContainer}>
+                  <View style={styles.headerRow}>
+                    <Text style={styles.username}>{app.username}</Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: statusInfo.color },
+                      ]}
+                    >
+                      <Text style={styles.statusText}>{statusInfo.text}</Text>
+                    </View>
                   </View>
-                ) : null}
-              </View>
 
-              <View style={styles.detailsContainer}>
-                <Text style={styles.username}>{app.username}</Text>
-                <Text style={styles.details}>{app.email}</Text>
-                <Text style={styles.details}>{app.phoneNo}</Text>
-                <Text style={styles.details}>{app.shopAddress}</Text>
+                  <View style={styles.contactInfo}>
+                    <Ionicons name="mail" size={14} color="#666" />
+                    <Text style={styles.details}>{app.email}</Text>
+                  </View>
 
-                <View style={styles.buttonContainer}>
-                  {app.approvalFromAdmin ? (
-                    <TouchableOpacity
-                      style={[styles.button, styles.rejectButton]}
-                      onPress={() => updateApproval(app._id, false)}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <>
-                          <Ionicons name="close" size={16} color="#fff" />
-                          <Text style={styles.buttonText}>Reject</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.button, styles.approveButton]}
-                      onPress={() => updateApproval(app._id, true)}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <>
-                          <Ionicons name="checkmark" size={16} color="#fff" />
-                          <Text style={styles.buttonText}>Approve</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
+                  <View style={styles.contactInfo}>
+                    <Ionicons name="call" size={14} color="#666" />
+                    <Text style={styles.details}>{app.phoneNo}</Text>
+                  </View>
+
+                  <View style={styles.contactInfo}>
+                    <Ionicons name="business" size={14} color="#666" />
+                    <Text style={styles.details} numberOfLines={1}>
+                      {app.shopAddress}
+                    </Text>
+                  </View>
+
+                  {/* Display Services */}
+                  {app.serviceNames && app.serviceNames.length > 0 && (
+                    <View style={styles.servicesContainer}>
+                      <Text style={styles.servicesLabel}>Services:</Text>
+                      <View style={styles.servicesList}>
+                        {app.serviceNames.map((service, index) => (
+                          <View key={index} style={styles.serviceChip}>
+                            <Text style={styles.serviceText}>{service}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
                   )}
+
+                  <View style={styles.buttonContainer}>
+                    {app.approvalFromAdmin ? (
+                      <TouchableOpacity
+                        style={[styles.button, styles.rejectButton]}
+                        onPress={() => updateApproval(app._id, false)}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Ionicons name="close" size={16} color="#fff" />
+                            <Text style={styles.buttonText}>Reject</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.button, styles.approveButton]}
+                        onPress={() => updateApproval(app._id, true)}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Ionicons name="checkmark" size={16} color="#fff" />
+                            <Text style={styles.buttonText}>Approve</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        ))
+          );
+        })
       )}
 
       <Modal
@@ -263,6 +325,7 @@ export default function ApplicationsPage() {
     </ScrollView>
   );
 }
+
 // Professional Styles
 const styles = StyleSheet.create({
   container: {
@@ -347,27 +410,33 @@ const styles = StyleSheet.create({
   detailsContainer: {
     flex: 1,
   },
-  nameContainer: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   username: {
     fontSize: 16,
     fontWeight: "700",
     color: "#2c3e50",
+    flex: 1,
   },
-  name: {
-    fontSize: 14,
-    color: "#7f8c8d",
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  statusText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
   },
   contactInfo: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: "#666",
-    marginLeft: 6,
   },
   details: {
     fontSize: 14,
