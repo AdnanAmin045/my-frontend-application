@@ -187,9 +187,10 @@ const OrderHistory = () => {
       );
 
       const response = await axios.post(
-        `${API_URL}/users/add-measurement`,
+        `${API_URL}/measurements/create`,
         {
           serviceProviderId: selectedOrder.serviceProvider?._id,
+          orderId: selectedOrder._id,
           ...measurementData
         },
         {
@@ -202,6 +203,7 @@ const OrderHistory = () => {
         fetchOrders();
         closeMeasurementModal();
       }
+
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Failed to save measurements. Please try again.");
@@ -210,11 +212,9 @@ const OrderHistory = () => {
     }
   };
 
-  // Check if a service is a Tailor service and needs measurements
-  const needsMeasurement = (service) => {
-    return service.name.toLowerCase().includes("tailor") && !service.measurementAdded;
+  const needsMeasurement = (service,measurementAdded) => {
+    return service.name.toLowerCase().includes("tailor") && !measurementAdded;
   };
-
   const renderOrderItem = ({ item }) => (
     <View style={styles.card}>
       {/* Header */}
@@ -237,7 +237,7 @@ const OrderHistory = () => {
 
       {/* Total Payment */}
       <Text style={styles.totalPayment}>
-        Total Payment: ${item.totalPayment.toFixed(2)}
+        Total Payment: PKR {item.totalPayment.toFixed(2)}
       </Text>
 
       {/* Address */}
@@ -254,10 +254,10 @@ const OrderHistory = () => {
             <Text style={styles.serviceName}>
               {service.name} x{service.quantity}
             </Text>
-            <Text style={styles.servicePrice}>${service.price}</Text>
+            <Text style={styles.servicePrice}>PKR: {service.price}</Text>
           </View>
           {/* Add Measurement Button for Tailor services */}
-          {needsMeasurement(service) && (
+          {needsMeasurement(service,item.measurementAdded) && (
             <TouchableOpacity
               style={styles.measurementButton}
               onPress={() => openMeasurementModal(item, service)}
@@ -311,7 +311,7 @@ const OrderHistory = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.title}>Order History</Text>
 
       <TextInput
@@ -537,7 +537,7 @@ const OrderHistory = () => {
           </ScrollView>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -590,7 +590,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f0f2f5",
-    padding: 12,
+    marginTop:20,
+    paddingHorizontal:10
   },
   title: {
     fontSize: 26,
@@ -787,6 +788,7 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom:60
   },
   modalButton: {
     flex: 1,

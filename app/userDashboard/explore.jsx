@@ -186,9 +186,26 @@ const Explore = () => {
       const user = await AsyncStorage.getItem("user");
       const token = user ? JSON.parse(user).accessToken : null;
 
+      const totalPKR = parseFloat(calculateTotal());
+
+      let rateUSD = 0.0036;
+
+      const totalUSD = totalPKR * rateUSD;
+
+      const MIN_USD = 0.5;
+
+      if (totalUSD < MIN_USD) {
+        setErrors({ payment: `Minimum payment is $${MIN_USD.toFixed(2)} USD` });
+        setPaymentLoading(false);
+        return;
+      }
+
       const paymentIntentRes = await axios.post(
         `${API_URL}/orders/create-payment-intent`,
-        { amount: parseFloat(calculateTotal()) * 100, currency: "usd" },
+        {
+          amount: Math.round(totalUSD * 100),
+          currency: "usd",
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -202,22 +219,23 @@ const Explore = () => {
       });
 
       if (error) {
-        console.error("Payment Error:", error);
         setErrors({ payment: error.message });
         setPaymentLoading(false);
         return;
       }
+
       await axios.post(
         `${API_URL}/orders/createOrder`,
         {
-          serviceProviderId: selectedOffer.providerId, // ✅ correct provider id
+          serviceProviderId: selectedOffer.providerId,
           offerId: selectedOffer._id,
           services: selectedServices.map((s) => ({
             name: s.name,
             quantity: quantities[s.name] || 1,
             price: s.price,
           })),
-          totalPayment: parseFloat(calculateTotal()),
+          totalPayment: totalPKR,
+          totalPaymentUSD: totalUSD,
           address: { homeAddress: address, phoneNo: phone, email },
           paymentIntentId: paymentIntent.id,
         },
@@ -227,8 +245,11 @@ const Explore = () => {
       Alert.alert("Success", "Payment successful and order placed!");
       handleCancel();
     } catch (err) {
-      console.error(err.response?.data || err.message);
-      setErrors({ payment: "Payment failed. Please try again." });
+      console.error("Payment error:", err.response?.data || err.message);
+      setErrors({
+        payment:
+          err.response?.data?.message || "Payment failed. Please try again.",
+      });
     } finally {
       setPaymentLoading(false);
     }
@@ -380,13 +401,13 @@ const Explore = () => {
                         <View key={i} style={styles.serviceItem}>
                           <Text style={styles.serviceName}>{service.name}</Text>
                           <Text style={styles.servicePrice}>
-                            $
+                            PKR:
                             {service.price -
                               (service.price * offer.discountPercentage) / 100}
                             {offer.discountPercentage > 0 && (
                               <Text style={styles.originalPrice}>
                                 {" "}
-                                ${service.price}
+                                PKR: {service.price}
                               </Text>
                             )}
                           </Text>
@@ -503,7 +524,7 @@ const Explore = () => {
                   <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName}>{service.name}</Text>
                     <Text style={styles.servicePrice}>
-                      $
+                      PKR:
                       {service.price -
                         (service.price * selectedOffer.discountPercentage) /
                           100}
@@ -553,7 +574,7 @@ const Explore = () => {
 
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalAmount}>${calculateTotal()}</Text>
+                <Text style={styles.totalAmount}>PKR: {calculateTotal()}</Text>
               </View>
 
               <View style={styles.modalButtons}>
@@ -580,53 +601,60 @@ const Explore = () => {
             { transform: [{ translateY: slideAnim }] },
           ]}
         >
-          <View style={styles.paymentHeader}>
-            <Text style={styles.paymentTitle}>Payment Details</Text>
-            <TouchableOpacity onPress={handleCancel}>
-              <Icon name="times" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.paymentContent}>
-            <Text style={styles.paymentAmount}>Total: ${calculateTotal()}</Text>
-
-            <CardField
-              postalCodeEnabled={false}
-              placeholder={{ number: "4242 4242 4242 4242" }}
-              cardStyle={styles.cardField}
-              style={styles.cardContainer}
-              onCardChange={(card) => setCardDetails(card)}
-            />
-
-            {errors.payment && (
-              <Text style={styles.errorText}>{errors.payment}</Text>
-            )}
-
-            <View style={styles.paymentButtons}>
-              <TouchableOpacity
-                style={styles.cancelPaymentButton}
-                onPress={handleCancel}
-              >
-                <Text style={styles.cancelPaymentButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.confirmPaymentButton,
-                  paymentLoading && styles.disabledButton,
-                ]}
-                onPress={handlePaymentConfirm}
-                disabled={paymentLoading}
-              >
-                {paymentLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.confirmPaymentButtonText}>
-                    Confirm Payment
-                  </Text>
-                )}
+          <ScrollView
+            contentContainerStyle={styles.paymentScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.paymentHeader}>
+              <Text style={styles.paymentTitle}>Payment Details</Text>
+              <TouchableOpacity onPress={handleCancel}>
+                <Icon name="times" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-          </View>
+
+            <View style={styles.paymentContent}>
+              <Text style={styles.paymentAmount}>
+                Total: PKR {calculateTotal()}
+              </Text>
+
+              <CardField
+                postalCodeEnabled={false}
+                placeholder={{ number: "4242 4242 4242 4242" }}
+                cardStyle={styles.cardField}
+                style={styles.cardContainer}
+                onCardChange={(card) => setCardDetails(card)}
+              />
+
+              {errors.payment && (
+                <Text style={styles.errorText}>{errors.payment}</Text>
+              )}
+
+              <View style={styles.paymentButtons}>
+                <TouchableOpacity
+                  style={styles.cancelPaymentButton}
+                  onPress={handleCancel}
+                >
+                  <Text style={styles.cancelPaymentButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.confirmPaymentButton,
+                    paymentLoading && styles.disabledButton,
+                  ]}
+                  onPress={handlePaymentConfirm}
+                  disabled={paymentLoading}
+                >
+                  {paymentLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.confirmPaymentButtonText}>
+                      Confirm Payment
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
         </Animated.View>
       </Modal>
     </View>
@@ -634,9 +662,14 @@ const Explore = () => {
 };
 
 const styles = StyleSheet.create({
+  keyboardAvoidingContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
+    marginTop: 20,
   },
   header: {
     fontSize: 24,
@@ -652,9 +685,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
   },
   errorText: {
-    color: "#e74c3c",
-    marginTop: 5,
+    color: "red",
     fontSize: 12,
+    marginLeft: 20,
   },
   providerCard: {
     backgroundColor: "#fff",

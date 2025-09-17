@@ -1,197 +1,465 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
-  StyleSheet,
-  FlatList,
+  TextInput,
   TouchableOpacity,
-  ActivityIndicator,
-  Modal,
   ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
 } from "react-native";
 import axios from "axios";
-import { Picker } from "@react-native-picker/picker";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
 import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const MeasurementsViewer = () => {
+const MeasurementDisplay = () => {
+  const route = useRouter()
   const [measurements, setMeasurements] = useState([]);
+  const [filteredMeasurements, setFilteredMeasurements] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSP, setSelectedSP] = useState("all");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMeasurement, setSelectedMeasurement] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchMeasurements();
+  }, []);
+
+  useEffect(() => {
+    const filtered = measurements.filter((item) =>
+      item.serviceProvider.username
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    );
+    setFilteredMeasurements(filtered);
+  }, [searchTerm, measurements]);
 
   const fetchMeasurements = async () => {
     try {
       setLoading(true);
       const user = await AsyncStorage.getItem("user");
       const token = user ? JSON.parse(user).accessToken : null;
-      const response = await axios.get(`${API_URL}/measurements/get`,{
+      const response = await axios.get(`${API_URL}/measurements/get`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // response format: [{chest, waist,..., serviceProvider:{username,phoneNo,shopAddress,...}}, ...]
-      setMeasurements(response.data.measurements || []);
+
+      if (response.data.success) {
+        setMeasurements(response.data.data);
+        setFilteredMeasurements(response.data.data);
+      } else {
+        setError("Failed to fetch measurements");
+        Alert.alert("Error", "Failed to fetch measurements");
+      }
     } catch (err) {
-      console.error(err);
-      alert("Failed to fetch measurements");
+      setError("Error connecting to server");
+      Alert.alert("Error", "Could not connect to server");
+      console.error("Error fetching measurements:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchMeasurements();
-  }, []);
+  const handleProviderSelect = (provider) => {
+    setSelectedProvider(provider);
+  };
 
-  const uniqueSPs = [...new Set(measurements.map((m) => m.serviceProvider?.username))];
-
-  const filteredMeasurements =
-    selectedSP === "all"
-      ? measurements
-      : measurements.filter((m) => m.serviceProvider?.username === selectedSP);
+  const handleBackToList = () => {
+    setSelectedProvider(null);
+  };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#6200ea" />
-      </SafeAreaView>
+      <View style={styles.container}>
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#3498db" />
+          <Text style={styles.loadingText}>Loading measurements...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error && measurements.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContent}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            onPress={fetchMeasurements}
+            style={styles.retryButton}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Service Provider Filter */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Filter by Shop Name:</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={selectedSP} onValueChange={(value) => setSelectedSP(value)}>
-            <Picker.Item label="All" value="all" />
-            {uniqueSPs.map((username) => (
-              <Picker.Item key={username} label={username} value={username} />
-            ))}
-          </Picker>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <ScrollView>
+        <Text style={styles.header}>My Measurements</Text>
 
-      {/* Measurements List */}
-      <FlatList
-        data={filteredMeasurements}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => {
-              setSelectedMeasurement(item);
-              setModalVisible(true);
-            }}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.spName}>{item.serviceProvider?.username || "Unknown"}</Text>
-              <Text style={styles.date}>
-                {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ""}
-              </Text>
+        {!selectedProvider ? (
+          <>
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search service providers..."
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+              />
             </View>
-            <View style={styles.measureRow}>
-              <Text>Chest: {item.chest}</Text>
-              <Text>Waist: {item.waist}</Text>
-              <Text>Hips: {item.hips}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
 
-      {/* Modal for full details */}
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
-              {selectedMeasurement?.serviceProvider?.username}'s Measurements
-            </Text>
-            <ScrollView style={{ maxHeight: 400 }}>
-              {selectedMeasurement &&
-                Object.entries(selectedMeasurement)
-                  .filter(
-                    ([key]) =>
-                      key !== "serviceProvider" && key !== "_id" && key !== "__v"
-                  )
-                  .map(([key, value]) => (
-                    <View key={key} style={styles.measureRow}>
-                      <Text style={styles.measureKey}>{key}:</Text>
-                      <Text style={styles.measureValue}>{value}</Text>
+            {filteredMeasurements.length === 0 ? (
+              <View style={styles.centerContent}>
+                <Text style={styles.noResultsText}>
+                  {searchTerm
+                    ? `No service providers found matching "${searchTerm}"`
+                    : "No measurements found. Please add measurements first."}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.providersList}>
+                {filteredMeasurements.map((item) => (
+                  <TouchableOpacity
+                    key={item._id}
+                    style={styles.providerCard}
+                    onPress={() => handleProviderSelect(item)}
+                  >
+                    <View style={styles.providerInfo}>
+                      <Text style={styles.providerName}>
+                        {item.serviceProvider.username}
+                      </Text>
+                      <Text style={styles.providerDetail}>
+                        {item.serviceProvider.email}
+                      </Text>
+                      <Text style={styles.providerDetail}>
+                        {item.serviceProvider.phone}
+                      </Text>
                     </View>
-                  ))}
-
-              {/* Service Provider Info */}
-              {selectedMeasurement?.serviceProvider && (
-                <View style={{ marginTop: 12 }}>
-                  <Text style={{ fontWeight: "700", marginBottom: 4 }}>Shop Info:</Text>
-                  <Text>Phone: {selectedMeasurement.serviceProvider.phoneNo}</Text>
-                  <Text>Address: {selectedMeasurement.serviceProvider.shopAddress}</Text>
-                </View>
-              )}
-            </ScrollView>
+                    <View style={styles.viewDetailsButton}>
+                      <Text style={styles.viewDetailsButtonText}>
+                        View Measurements
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={styles.measurementDetails}>
             <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
+              onPress={handleBackToList}
+              style={styles.backButton}
             >
-              <Icon name="close-circle" size={24} color="#fff" />
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.backButtonText}>&larr; Back to List</Text>
             </TouchableOpacity>
+
+            <View style={styles.providerHeader}>
+              <Text style={styles.providerTitle}>
+                {selectedProvider.serviceProvider.username}'s Measurements
+              </Text>
+              <View style={styles.providerContact}>
+                <Text style={styles.contactDetail}>
+                  <Text style={styles.contactLabel}>Email:</Text>{" "}
+                  {selectedProvider.serviceProvider.email}
+                </Text>
+                <Text style={styles.contactDetail}>
+                  <Text style={styles.contactLabel}>Phone:</Text>{" "}
+                  {selectedProvider.serviceProvider.phone}
+                </Text>
+                <Text style={styles.contactDetail}>
+                  <Text style={styles.contactLabel}>Address:</Text>{" "}
+                  {selectedProvider.serviceProvider.address}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.measurementsGrid}>
+              <View style={styles.measurementRow}>
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Chest</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.chest || "Not provided"} cm
+                  </Text>
+                </View>
+
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Waist</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.waist || "Not provided"} cm
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.measurementRow}>
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Hips</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.hips || "Not provided"} cm
+                  </Text>
+                </View>
+
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Shoulder</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.shoulder || "Not provided"}{" "}
+                    cm
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.measurementRow}>
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Sleeve Length</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.sleeveLength ||
+                      "Not provided"}{" "}
+                    cm
+                  </Text>
+                </View>
+
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Shirt Length</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.shirtLength ||
+                      "Not provided"}{" "}
+                    cm
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.measurementRow}>
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Trouser Length</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.trouserLength ||
+                      "Not provided"}{" "}
+                    cm
+                  </Text>
+                </View>
+
+                <View style={styles.measurementItem}>
+                  <Text style={styles.measurementLabel}>Inseam</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.inseam || "Not provided"} cm
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.measurementRow}>
+                <View style={[styles.measurementItem, styles.fullWidthItem]}>
+                  <Text style={styles.measurementLabel}>Neck</Text>
+                  <Text style={styles.measurementValue}>
+                    {selectedProvider.measurements.neck || "Not provided"} cm
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {selectedProvider.measurements.notes && (
+              <View style={styles.notesSection}>
+                <Text style={styles.notesTitle}>Additional Notes</Text>
+                <Text style={styles.notesText}>
+                  {selectedProvider.measurements.notes}
+                </Text>
+              </View>
+            )}
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
-export default MeasurementsViewer;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5", padding: 12 },
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  filterContainer: { marginBottom: 12 },
-  filterLabel: { fontWeight: "600", marginBottom: 4, fontSize: 16 },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 6,
-    elevation: 2,
-  },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  spName: { fontWeight: "700", fontSize: 16, color: "#1f2937" },
-  date: { fontSize: 12, color: "#6b7280" },
-  measureRow: { flexDirection: "row", justifyContent: "space-between", marginVertical: 4 },
-  modalBackground: {
+  container: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "#f8f9fa",
+    marginTop:20
+  },
+  centerContent: {
+    flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
-  modalContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+  header: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#2c3e50",
+    margin: 16,
+    marginBottom: 8,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#7f8c8d",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#e74c3c",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#3498db",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: "white",
+    fontWeight: "500",
+  },
+  searchContainer: {
+    padding: 16,
+    paddingTop: 8,
+  },
+  searchInput: {
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    fontSize: 16,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: "#7f8c8d",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  providersList: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  providerCard: {
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  providerInfo: {
+    marginBottom: 12,
+  },
+  providerName: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginBottom: 4,
+  },
+  providerDetail: {
+    fontSize: 14,
+    color: "#7f8c8d",
+    marginBottom: 2,
+  },
+  viewDetailsButton: {
+    backgroundColor: "#3498db",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  viewDetailsButtonText: {
+    color: "white",
+    fontWeight: "500",
+  },
+  measurementDetails: {
     padding: 16,
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
-  measureKey: { fontWeight: "600", flex: 1 },
-  measureValue: { flex: 1, textAlign: "right" },
-  closeButton: {
-    flexDirection: "row",
-    justifyContent: "center",
-    backgroundColor: "#dc3545",
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 16,
+  backButton: {
+    marginBottom: 16,
   },
-  closeText: { color: "#fff", fontWeight: "600", marginLeft: 6 },
+  backButtonText: {
+    color: "#3498db",
+    fontSize: 16,
+  },
+  providerHeader: {
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  providerTitle: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginBottom: 12,
+  },
+  providerContact: {
+    marginBottom: 5,
+  },
+  contactDetail: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 4,
+  },
+  contactLabel: {
+    fontWeight: "600",
+  },
+  measurementsGrid: {
+    marginBottom: 20,
+  },
+  measurementRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  measurementItem: {
+    backgroundColor: "#f8f9fa",
+    padding: 15,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#3498db",
+    flex: 1,
+    marginHorizontal: 6,
+  },
+  fullWidthItem: {
+    marginHorizontal: 0,
+  },
+  measurementLabel: {
+    fontWeight: "600",
+    color: "#2c3e50",
+    fontSize: 14,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  measurementValue: {
+    fontSize: 18,
+    color: "#2c3e50",
+  },
+  notesSection: {
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  notesTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginBottom: 10,
+  },
+  notesText: {
+    fontSize: 16,
+    color: "#555",
+    lineHeight: 22,
+  },
+  measurementMeta: {
+    alignItems: "flex-end",
+  },
+  metaText: {
+    color: "#7f8c8d",
+    fontSize: 14,
+  },
 });
+
+export default MeasurementDisplay;

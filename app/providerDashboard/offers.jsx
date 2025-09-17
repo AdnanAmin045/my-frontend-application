@@ -234,36 +234,44 @@ export default function OffersScreen() {
   };
 
   // ✅ Add Service to Offer - FIXED
-  const addService = () => {
-    if (!selectedServiceId || servicePrice === "") {
-      Alert.alert("Error", "Please select a service and enter a price");
-      return;
-    }
-    
-    // Find the selected service object
-    const selectedService = services.find(s => s._id === selectedServiceId);
-    if (!selectedService) return;
-    
-    const currentServices = watch("servicesIncluded");
-    
-    // Check if service already exists by ID (more reliable than name)
-    if (currentServices.find(s => s._id === selectedServiceId)) {
-      Alert.alert("Error", "This service is already added");
-      return;
-    }
+const addService = () => {
+  if (!selectedServiceId || servicePrice === "") {
+    Alert.alert("Error", "Please select a service and enter a price");
+    return;
+  }
 
-    const updatedServices = [
-      ...currentServices,
-      { 
-        _id: selectedService._id,
-        name: selectedService.name, 
-        price: Number(servicePrice) 
-      },
-    ];
-    setValue("servicesIncluded", updatedServices);
-    setSelectedServiceId(null);
-    setServicePrice("");
-  };
+  const priceValue = Number(servicePrice);
+  if (priceValue < 200) {
+    Alert.alert("Price Error", "Price must be at least 200 PKR");
+    return;
+  }
+
+  // Find the selected service object
+  const selectedService = services.find((s) => s._id === selectedServiceId);
+  if (!selectedService) return;
+
+  const currentServices = watch("servicesIncluded");
+
+  // Check if service already exists by ID
+  if (currentServices.find((s) => s._id === selectedServiceId)) {
+    Alert.alert("Error", "This service is already added");
+    return;
+  }
+
+  const updatedServices = [
+    ...currentServices,
+    {
+      _id: selectedService._id,
+      name: selectedService.name,
+      price: priceValue,
+    },
+  ];
+
+  setValue("servicesIncluded", updatedServices);
+  setSelectedServiceId(null);
+  setServicePrice("");
+};
+
 
   // ✅ Remove Service from Offer
   const removeService = (serviceId) => {
@@ -415,7 +423,7 @@ export default function OffersScreen() {
                       }}
                     >
                       <Text style={{ fontWeight: "600" }}>{service.name}</Text>
-                      <Text style={{ color: "#333" }}>${service.price}</Text>
+                      <Text style={{ color: "#333" }}>PKR: {service.price}</Text>
                     </View>
                   ))
                 ) : (
@@ -603,7 +611,7 @@ export default function OffersScreen() {
                 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: "600" }}>{s.name}</Text>
-                    <Text style={{ color: "#333" }}>${s.price}</Text>
+                    <Text style={{ color: "#333" }}>PKR: {s.price}</Text>
                   </View>
                   <TouchableOpacity onPress={() => removeService(s._id)}>
                     <Text style={{ color: "red", fontWeight: "bold" }}>Remove</Text>

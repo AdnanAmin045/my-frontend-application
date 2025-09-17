@@ -1,10 +1,12 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import AdminSidebar from "../components/adminSidebar";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { ProtectedRoute } from "../components/ProtectedRoute";
 
 const DashboardLayout = () => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Top Content: Stack Screens */}
       <View style={styles.stackContainer}>
         <Stack screenOptions={{ headerShown: false }}>
@@ -12,7 +14,7 @@ const DashboardLayout = () => {
           <Stack.Screen name="application" options={{ title: "Application" }} />
           <Stack.Screen name="services" options={{ title: "Services" }} />
           <Stack.Screen name="review" options={{ title: "Review" }} />
-          {/* Add other screens here if needed */}
+          {/* Add more screens here if needed */}
         </Stack>
       </View>
 
@@ -20,7 +22,7 @@ const DashboardLayout = () => {
       <View style={styles.sidebarContainer}>
         <AdminSidebar />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -29,6 +31,7 @@ export default DashboardLayout;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f2f2f2", // 🔥 Added light background (same as your other layouts)
   },
   stackContainer: {
     flex: 1,

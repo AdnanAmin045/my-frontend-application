@@ -55,15 +55,15 @@ const OrdersManager = () => {
     useForm({
       resolver: zodResolver(measurementSchema),
       defaultValues: {
-        chest: 0,
-        waist: 0,
-        hips: 0,
-        shoulder: 0,
-        sleeveLength: 0,
-        shirtLength: 0,
-        trouserLength: 0,
-        inseam: 0,
-        neck: 0,
+        chest: null,
+        waist: null,
+        hips: null,
+        shoulder: null,
+        sleeveLength: null,
+        shirtLength: null,
+        trouserLength: null,
+        inseam: null,
+        neck: null,
         notes: "",
       },
     });
@@ -140,18 +140,26 @@ const OrdersManager = () => {
     setStatusModalVisible(true);
   };
 
-  const openMeasurementModal = (order) => {
-    setSelectedOrder(order);
-    if (order.measurements) {
-      Object.keys(order.measurements).forEach((key) =>
-        setValue(key, order.measurements[key] || 0)
-      );
-      setValue("notes", order.measurements.notes || "");
-    } else {
-      reset();
-    }
-    setMeasurementModal(true);
-  };
+ const openMeasurementModal = (order) => {
+  setSelectedOrder(order);
+
+  // measurement array le rahe hain
+  const measurementData = Array.isArray(order.measurements) && order.measurements.length > 0 
+    ? order.measurements[0] 
+    : null;
+
+  if (measurementData) {
+    // Fill form values with existing measurement data
+    Object.keys(measurementSchema.shape).forEach((key) => {
+      setValue(key, measurementData[key] ?? "");
+    });
+  } else {
+    reset(); // Clear form if no measurement found
+  }
+
+  setMeasurementModal(true);
+};
+
 
   const renderStars = (rating) => {
     const stars = [];
@@ -226,11 +234,11 @@ const OrdersManager = () => {
             {item.services.map((s, i) => (
               <View key={i} style={styles.serviceRow}>
                 <Text style={styles.serviceName}>{s.name} x{s.quantity}</Text>
-                <Text style={styles.servicePrice}>${s.price}</Text>
+                <Text style={styles.servicePrice}>PKR: {s.price}</Text>
               </View>
             ))}
 
-            <Text style={styles.totalPayment}>Total Payment: ${item.totalPayment.toFixed(2)}</Text>
+            <Text style={styles.totalPayment}>Total Payment: PKR {item.totalPayment.toFixed(2)}</Text>
             <Text style={styles.address}>
               {item.address.homeAddress} | {item.address.phoneNo} | {item.address.email}
             </Text>
@@ -308,13 +316,16 @@ const OrdersManager = () => {
                       control={control}
                       name={field}
                       render={({ field: { onChange, value } }) => (
-                        <TextInput
-                          placeholder="Notes"
-                          style={[styles.input, { height: 80 }]}
-                          value={value}
-                          onChangeText={onChange}
-                          multiline
-                        />
+                        <View>
+                          <Text style={styles.measurementLabel}>Notes</Text>
+                          <TextInput
+                            placeholder="Notes"
+                            style={[styles.input, { height: 80 }]}
+                            value={value}
+                            onChangeText={onChange}
+                            multiline
+                          />
+                        </View>
                       )}
                     />
                   );
@@ -325,13 +336,18 @@ const OrdersManager = () => {
                     control={control}
                     name={field}
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                        style={styles.input}
-                        keyboardType="numeric"
-                        value={value.toString()}
-                        onChangeText={(val) => onChange(Number(val))}
-                      />
+                      <View>
+                        <Text style={styles.measurementLabel}>
+                          {field.charAt(0).toUpperCase() + field.slice(1)} (cm)
+                        </Text>
+                        <TextInput
+                          placeholder={`${field.charAt(0).toUpperCase() + field.slice(1)} in cm`}
+                          style={styles.input}
+                          keyboardType="numeric"
+                          value={value !== null && value !== undefined ? value.toString() : ""}
+                          onChangeText={(val) => onChange(Number(val))}
+                        />
+                      </View>
                     )}
                   />
                 );
@@ -523,6 +539,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: "#ccc",
     fontSize: 16,
+  },
+  measurementLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    marginTop: 8,
+    color: '#333',
   },
   feedbackContainer: { 
     marginTop: 10, 

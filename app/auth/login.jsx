@@ -144,7 +144,7 @@ const Login = () => {
                 labelStyle={styles.roleButtonLabel}
                 contentStyle={styles.roleButtonContent}
               >
-                Service
+                Provider
               </Button>
 
               <Button
