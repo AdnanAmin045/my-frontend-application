@@ -5,18 +5,27 @@ import {
   StyleSheet, 
   ScrollView, 
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  Image,
+  TouchableOpacity,
+  Alert,
+  TextInput
 } from "react-native";
 import axios from "axios";
 import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function UserProfile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [updatingPic, setUpdatingPic] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -43,6 +52,7 @@ export default function UserProfile() {
           },
         });     
         setUser(response.data.data);
+        setUsername(response.data.data.username);
         setError(null);
       } catch (error) {
         console.log("Error fetching user profile:", error);
@@ -54,6 +64,136 @@ export default function UserProfile() {
 
     fetchUserProfile();
   }, []);
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        await updateProfilePicture(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  const updateProfilePicture = async (imageAsset) => {
+    setUpdatingPic(true);
+    try {
+      const userData = await AsyncStorage.getItem("user");
+      const parsedUser = JSON.parse(userData);
+      const token = parsedUser.accessToken;
+
+      const formData = new FormData();
+      formData.append('profilePic', {
+        uri: imageAsset.uri,
+        type: 'image/jpeg',
+        name: 'profilePic.jpg',
+      });
+
+      const response = await axios.put(`${API_URL}/users/profile-pic`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setUser(response.data.data);
+        Alert.alert("Success", "Profile picture updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error updating profile picture:", error);
+      Alert.alert("Error", "Failed to update profile picture");
+    } finally {
+      setUpdatingPic(false);
+    }
+  };
+
+  const removeProfilePicture = async () => {
+    Alert.alert(
+      "Remove Profile Picture",
+      "Are you sure you want to remove your profile picture?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setUpdatingPic(true);
+            try {
+              const userData = await AsyncStorage.getItem("user");
+              const parsedUser = JSON.parse(userData);
+              const token = parsedUser.accessToken;
+
+              const response = await axios.delete(`${API_URL}/users/profile-pic`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              if (response.status === 200) {
+                setUser(response.data.data);
+                Alert.alert("Success", "Profile picture removed successfully!");
+              }
+            } catch (error) {
+              console.error("Error removing profile picture:", error);
+              Alert.alert("Error", "Failed to remove profile picture");
+            } finally {
+              setUpdatingPic(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const updateUsername = async () => {
+    if (!username.trim()) {
+      Alert.alert("Error", "Username cannot be empty");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const userData = await AsyncStorage.getItem("user");
+      const parsedUser = JSON.parse(userData);
+      const token = parsedUser.accessToken;
+
+      const response = await axios.put(`${API_URL}/users/updateInfo`, {
+        username: username.trim()
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setUser(response.data.data);
+        setEditing(false);
+        Alert.alert("Success", "Username updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error updating username:", error);
+      if (error.response?.data?.message) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "Failed to update username");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setUsername(user.username);
+    setEditing(false);
+  };
 
   // Function to generate initials from username
   const getInitials = (name) => {
@@ -113,37 +253,144 @@ export default function UserProfile() {
           colors={['#4A90E2', '#357ABD']}
           style={styles.header}
         >
-          <View style={styles.avatarContainer}>
-            <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-              <Text style={styles.avatarText}>{initials}</Text>
+          <View style={styles.headerContent}>
+            <View style={styles.avatarContainer}>
+              <TouchableOpacity 
+                style={styles.avatarTouchable}
+                onPress={pickImage}
+                disabled={updatingPic}
+              >
+                {user.profilePic ? (
+                  <View style={styles.avatarWrapper}>
+                    <Image source={{ uri: user.profilePic }} style={styles.avatar} />
+                    <View style={styles.avatarBadge}>
+                      <MaterialIcons name="camera-alt" size={16} color="#fff" />
+                    </View>
+                  </View>
+                ) : (
+                  <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+                    <Text style={styles.avatarText}>{initials}</Text>
+                    <View style={styles.avatarBadge}>
+                      <MaterialIcons name="camera-alt" size={16} color="#fff" />
+                    </View>
+                  </View>
+                )}
+                {updatingPic && (
+                  <View style={styles.avatarOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.headerInfo}>
+              <Text style={styles.username}>{user.username}</Text>
+              <Text style={styles.userTitle}>User Profile</Text>
+            </View>
+
+            <View style={styles.headerActions}>
+              {!editing ? (
+                <TouchableOpacity 
+                  style={styles.editButton} 
+                  onPress={() => setEditing(true)}
+                >
+                  <MaterialIcons name="edit" size={20} color="#4A90E2" />
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.editActions}>
+                  <TouchableOpacity 
+                    style={styles.cancelButton} 
+                    onPress={handleCancel}
+                    disabled={saving}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.saveButton} 
+                    onPress={updateUsername}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Save</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </LinearGradient>
 
         {/* Profile Content */}
         <View style={styles.content}>
-          <Text style={styles.username}>{user.username}</Text>
-          <Text style={styles.email}>{user.email}</Text>
+          <View style={styles.userInfo}>
+            <Text style={styles.email}>{user.email}</Text>
+          </View>
           
-          {/* Additional Info Cards */}
+          {/* Profile Information Card */}
           <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Profile Information</Text>
+            
             <View style={styles.infoItem}>
-              <MaterialIcons name="person" size={24} color="#4A90E2" />
+              <View style={styles.infoIcon}>
+                <MaterialIcons name="person" size={24} color="#4A90E2" />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Username</Text>
-                <Text style={styles.infoValue}>{user.username}</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.inputField}
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="Enter username"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{user.username}</Text>
+                )}
               </View>
             </View>
             
             <View style={styles.separator} />
             
             <View style={styles.infoItem}>
-              <MaterialIcons name="email" size={24} color="#4A90E2" />
+              <View style={styles.infoIcon}>
+                <MaterialIcons name="email" size={24} color="#4A90E2" />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email Address</Text>
                 <Text style={styles.infoValue}>{user.email}</Text>
+                <Text style={styles.fieldNote}>Email cannot be changed</Text>
               </View>
             </View>           
+          </View>
+
+          {/* Profile Picture Actions */}
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Profile Picture</Text>
+            
+            <View style={styles.profilePicActions}>
+              <TouchableOpacity 
+                style={styles.actionButton} 
+                onPress={pickImage}
+                disabled={updatingPic}
+              >
+                <MaterialIcons name="edit" size={18} color="#4A90E2" />
+                <Text style={styles.actionButtonText}>Change Photo</Text>
+              </TouchableOpacity>
+              
+              {user.profilePic && (
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.removeButton]} 
+                  onPress={removeProfilePicture}
+                  disabled={updatingPic}
+                >
+                  <MaterialIcons name="delete-outline" size={18} color="#FF6B6B" />
+                  <Text style={[styles.actionButtonText, styles.removeButtonText]}>Remove</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         
         </View>
@@ -180,20 +427,33 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 180,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingBottom: 20,
-  },
-  avatarContainer: {
-    marginBottom: -60,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
+    paddingHorizontal: 20,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+  },
+  avatarWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarTouchable: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
     borderColor: '#fff',
     shadowColor: '#000',
     shadowOffset: {
@@ -205,59 +465,206 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   avatarText: {
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
   },
-  content: {
-    marginTop: 70,
-    padding: 20,
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 40,
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  uploadingText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  headerInfo: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 20,
+  },
   username: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    color: '#fff',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  userTitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  headerActions: {
+    alignItems: 'center',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  editButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cancelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  saveButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2',
+  },
+  avatarActions: {
+    flexDirection: 'row',
+    marginTop: 60,
+    gap: 12,
+    paddingHorizontal: 20,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  removeButton: {
+    backgroundColor: '#fff5f5',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  actionButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2',
+  },
+  removeButtonText: {
+    color: '#FF6B6B',
+  },
+  content: {
+    marginTop: 20,
+    padding: 20,
+  },
+  userInfo: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
   email: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 25,
+    color: '#6B7280',
+    marginBottom: 0,
+    textAlign: 'center',
   },
   infoCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
     width: '100%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     marginBottom: 20,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 16,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
+  },
+  infoIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
   infoContent: {
-    marginLeft: 15,
     flex: 1,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#888',
+    color: '#9CA3AF',
     marginBottom: 4,
+    fontWeight: '500',
   },
   infoValue: {
     fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    color: '#1F2937',
+    fontWeight: '600',
   },
   verifiedText: {
     color: '#2ECC71',
@@ -265,6 +672,28 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#f0f0f0',
+  },
+  inputField: {
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+    marginTop: 4,
+  },
+  fieldNote: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  profilePicActions: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
   },
   statsCard: {
     backgroundColor: '#fff',

@@ -61,33 +61,46 @@ const Login = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const payload = { ...data, role };
-      const response = await axios.post(`${API_URL}/users/login`, payload);
-      if (response.status === 200 && response.data.data.role === "Admin") {
-        const {
-          accessToken,
-          refreshToken,
-          role: userRole,
-        } = response.data.data;
-        await AsyncStorage.setItem(
-          "user",
-          JSON.stringify({ accessToken, refreshToken, role: userRole })
-        );
-        showSnackbar("Login Successfully!", "success");
-        router.push("adminDashboard");
-      } else if (response.status === 200) {
-        showSnackbar("OTP sent to your email!", "success");
-
-        router.push({
-          pathname: "/auth/loginOTP",
-          params: {
-            email: data.email,
-            userId: response.data.data.userId,
-            role: role,
-          },
+      if (role === "Admin") {
+        // Admin login - use new admin endpoint
+        const response = await axios.post(`${API_URL}/admin/login`, {
+          username: data.email, // Can use email or username
+          password: data.password,
         });
+        
+        if (response.status === 200) {
+          const { admin, accessToken } = response.data.data;
+          await AsyncStorage.setItem(
+            "user",
+            JSON.stringify({ 
+              accessToken, 
+              role: "Admin",
+              adminData: admin,
+              username: admin.username,
+              email: admin.email
+            })
+          );
+          showSnackbar("Admin Login Successfully!", "success");
+          router.push("adminDashboard");
+        }
       } else {
-        showSnackbar("Invalid credentials!", "error");
+        // Customer/Provider login - use existing endpoint
+        const payload = { ...data, role };
+        const response = await axios.post(`${API_URL}/users/login`, payload);
+        
+        if (response.status === 200) {
+          showSnackbar("OTP sent to your email!", "success");
+          router.push({
+            pathname: "/auth/loginOTP",
+            params: {
+              email: data.email,
+              userId: response.data.data.userId,
+              role: role,
+            },
+          });
+        } else {
+          showSnackbar("Invalid credentials!", "error");
+        }
       }
     } catch (error) {
       showSnackbar(

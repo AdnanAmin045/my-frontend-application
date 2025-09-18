@@ -14,6 +14,7 @@ const DashboardLayout = () => {
           <Stack.Screen name="application" options={{ title: "Application" }} />
           <Stack.Screen name="services" options={{ title: "Services" }} />
           <Stack.Screen name="review" options={{ title: "Review" }} />
+          <Stack.Screen name="payments" options={{ title: "Payments" }} />
           {/* Add more screens here if needed */}
         </Stack>
       </View>

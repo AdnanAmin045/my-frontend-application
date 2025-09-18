@@ -14,6 +14,20 @@ import { useRouter } from "expo-router";
 import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Urdu labels mapping
+const measurementLabels = {
+  chest: "Chest / سینہ",
+  waist: "Waist / کمر",
+  hips: "Hips / کولہے",
+  shoulder: "Shoulder / کندھا",
+  sleeveLength: "Sleeve Length / آستین کی لمبائی",
+  shirtLength: "Shirt Length / قمیض کی لمبائی",
+  trouserLength: "Trouser Length / پتلون کی لمبائی",
+  inseam: "Inseam / اندرونی سیون",
+  neck: "Neck / گردن",
+  notes: "Notes / نوٹس"
+};
+
 const MeasurementDisplay = () => {
   const route = useRouter()
   const [measurements, setMeasurements] = useState([]);
@@ -181,32 +195,32 @@ const MeasurementDisplay = () => {
             <View style={styles.measurementsGrid}>
               <View style={styles.measurementRow}>
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Chest</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.chest}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.chest || "Not provided"} cm
+                    {selectedProvider.measurements.chest || "Not provided / دستیاب نہیں"} cm
                   </Text>
                 </View>
 
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Waist</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.waist}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.waist || "Not provided"} cm
+                    {selectedProvider.measurements.waist || "Not provided / دستیاب نہیں"} cm
                   </Text>
                 </View>
               </View>
 
               <View style={styles.measurementRow}>
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Hips</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.hips}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.hips || "Not provided"} cm
+                    {selectedProvider.measurements.hips || "Not provided / دستیاب نہیں"} cm
                   </Text>
                 </View>
 
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Shoulder</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.shoulder}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.shoulder || "Not provided"}{" "}
+                    {selectedProvider.measurements.shoulder || "Not provided / دستیاب نہیں"}{" "}
                     cm
                   </Text>
                 </View>
@@ -214,19 +228,19 @@ const MeasurementDisplay = () => {
 
               <View style={styles.measurementRow}>
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Sleeve Length</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.sleeveLength}</Text>
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.sleeveLength ||
-                      "Not provided"}{" "}
+                      "Not provided / دستیاب نہیں"}{" "}
                     cm
                   </Text>
                 </View>
 
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Shirt Length</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.shirtLength}</Text>
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.shirtLength ||
-                      "Not provided"}{" "}
+                      "Not provided / دستیاب نہیں"}{" "}
                     cm
                   </Text>
                 </View>
@@ -234,27 +248,27 @@ const MeasurementDisplay = () => {
 
               <View style={styles.measurementRow}>
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Trouser Length</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.trouserLength}</Text>
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.trouserLength ||
-                      "Not provided"}{" "}
+                      "Not provided / دستیاب نہیں"}{" "}
                     cm
                   </Text>
                 </View>
 
                 <View style={styles.measurementItem}>
-                  <Text style={styles.measurementLabel}>Inseam</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.inseam}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.inseam || "Not provided"} cm
+                    {selectedProvider.measurements.inseam || "Not provided / دستیاب نہیں"} cm
                   </Text>
                 </View>
               </View>
 
               <View style={styles.measurementRow}>
                 <View style={[styles.measurementItem, styles.fullWidthItem]}>
-                  <Text style={styles.measurementLabel}>Neck</Text>
+                  <Text style={styles.measurementLabel}>{measurementLabels.neck}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.neck || "Not provided"} cm
+                    {selectedProvider.measurements.neck || "Not provided / دستیاب نہیں"} cm
                   </Text>
                 </View>
               </View>
@@ -262,7 +276,7 @@ const MeasurementDisplay = () => {
 
             {selectedProvider.measurements.notes && (
               <View style={styles.notesSection}>
-                <Text style={styles.notesTitle}>Additional Notes</Text>
+                <Text style={styles.notesTitle}>Additional Notes / اضافی نوٹس</Text>
                 <Text style={styles.notesText}>
                   {selectedProvider.measurements.notes}
                 </Text>

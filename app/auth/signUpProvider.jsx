@@ -9,6 +9,7 @@ import {
   Platform,
   Dimensions,
   Alert,
+  Image,
 } from "react-native";
 import {
   Text,
@@ -27,6 +28,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Location from "expo-location";
+import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from "../../baseURL";
 
 const { width } = Dimensions.get("window");
@@ -57,6 +59,7 @@ const SignUpProvider = () => {
   const [allServices, setAllServices] = useState([]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [profilePic, setProfilePic] = useState(null);
 
   const {
     control,
@@ -129,21 +132,61 @@ const SignUpProvider = () => {
 
   const toggleMenu = () => setMenuVisible((prev) => !prev);
 
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setProfilePic(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   const onSubmit = async (data) => {
     setLoading(true);
-    console.log("Hello")
     try {
+      const formData = new FormData();
+      formData.append('username', data.username);
+      formData.append('email', data.email);
+      formData.append('password', data.password);
+      formData.append('phoneNo', data.phoneNo);
+      formData.append('shopAddress', data.shopAddress);
+      formData.append('currentLocation', JSON.stringify(data.currentLocation));
+      formData.append('services', JSON.stringify(data.services));
+      
+      if (profilePic) {
+        formData.append('profilePic', {
+          uri: profilePic.uri,
+          type: 'image/jpeg',
+          name: 'profilePic.jpg',
+        });
+      }
+
       const response = await axios.post(
         `${API_URL}/users/register/provider`,
-        data
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
-      console.log("Response: ",response)
+
       if (response.status === 201) {
+        Alert.alert("Success", "Provider registered successfully! Please wait for admin approval.");
         router.push("/auth/login");
       } else {
         Alert.alert("Error", "Failed to register. Please try again.");
       }
     } catch (error) {
+      console.error("Provider registration error:", error);
       Alert.alert("Error", "Something went wrong. Please try again!");
     } finally {
       setLoading(false);
@@ -163,6 +206,32 @@ const SignUpProvider = () => {
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Join as a Provider</Text>
               <Text style={styles.headerSubtitle}>Create your business account</Text>
+            </View>
+
+            {/* Profile Picture Selection */}
+            <View style={styles.profilePicContainer}>
+              <Text style={styles.label}>Business Logo (Optional)</Text>
+              <View style={styles.profilePicWrapper}>
+                <TouchableOpacity style={styles.profilePicButton} onPress={pickImage}>
+                  {profilePic ? (
+                    <View style={styles.profilePicContainer}>
+                      <Image source={{ uri: profilePic.uri }} style={styles.profilePic} />
+                      <TouchableOpacity 
+                        style={styles.removePicButton} 
+                        onPress={() => setProfilePic(null)}
+                      >
+                        <IconButton icon="close" size={16} iconColor="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.profilePicPlaceholder}>
+                      <IconButton icon="camera-plus" size={32} iconColor="#8A63D2" />
+                      <Text style={styles.profilePicText}>Add Logo</Text>
+                      <Text style={styles.profilePicSubtext}>Tap to select</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Business Name */}
@@ -295,6 +364,46 @@ const styles = StyleSheet.create({
   serviceTag: { flexDirection: "row", alignItems: "center", backgroundColor: "#8A63D2", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
   serviceTagText: { fontSize: 14, color: "#FFF", marginRight: 8 },
   errorText: { fontSize: 14, color: "#EF4444", marginTop: 4 },
+  profilePicContainer: { alignItems: "center", marginBottom: 20 },
+  profilePicWrapper: { alignItems: "center", justifyContent: "center" },
+  profilePicButton: { alignItems: "center", justifyContent: "center" },
+  profilePic: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: "#8A63D2" },
+  profilePicPlaceholder: { 
+    width: 100, 
+    height: 100, 
+    borderRadius: 50, 
+    backgroundColor: "#F8FAFC", 
+    borderWidth: 2, 
+    borderColor: "#E2E8F0", 
+    borderStyle: "dashed", 
+    justifyContent: "center", 
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  profilePicText: { color: "#8A63D2", fontSize: 14, fontWeight: "600", marginTop: 6 },
+  profilePicSubtext: { color: "#94A3B8", fontSize: 11, marginTop: 2 },
+  removePicButton: { 
+    position: "absolute", 
+    top: -8, 
+    right: -8, 
+    backgroundColor: "#FF6B6B", 
+    borderRadius: 18, 
+    width: 36, 
+    height: 36, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.25, 
+    shadowRadius: 3.84, 
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
   buttonContainer: {
     flexDirection: "column",
     gap: 12,

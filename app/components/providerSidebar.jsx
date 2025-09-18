@@ -7,6 +7,7 @@ const providerSidebarItems = [
   { href: "/providerDashboard/orders", icon: "clipboard-list", label: "Orders" },
   { href: "/providerDashboard/offers", icon: "tag", label: "Offers" },
   { href: "/providerDashboard/riders", icon: "users", label: "Riders" },
+  { href: "/providerDashboard/payments", icon: "money-bill-wave", label: "Payments" },
 ];
 
 export default function ProviderSidebar() {

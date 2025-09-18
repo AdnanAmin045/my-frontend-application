@@ -19,6 +19,20 @@ import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+// Urdu labels mapping
+const measurementLabels = {
+  chest: "Chest / سینہ",
+  waist: "Waist / کمر",
+  hips: "Hips / کولہے",
+  shoulder: "Shoulder / کندھا",
+  sleeveLength: "Sleeve Length / آستین کی لمبائی",
+  shirtLength: "Shirt Length / قمیض کی لمبائی",
+  trouserLength: "Trouser Length / پتلون کی لمبائی",
+  inseam: "Inseam / اندرونی سیون",
+  neck: "Neck / گردن",
+  notes: "Notes / نوٹس"
+};
+
 // Define validation schemas with Zod
 const reviewSchema = z.object({
   rating: z.number().min(1, "Rating is required"),
@@ -290,17 +304,21 @@ const OrderHistory = () => {
   // Measurement input field component
   const MeasurementInput = ({ name, label, control, errors }) => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>{label} (cm)</Text>
+      <Text style={styles.inputLabel}>{measurementLabels[name]} (cm)</Text>
       <Controller
         control={control}
         name={name}
         render={({ field: { onChange, value } }) => (
           <TextInput
             style={styles.input}
-            placeholder={`Enter ${label} in cm`}
-            keyboardType="numeric"
+            placeholder={`Enter ${measurementLabels[name]} in cm`}
+            keyboardType="decimal-pad"
             value={value ? value.toString() : ""}
-            onChangeText={(text) => onChange(text ? Number(text) : undefined)}
+            onChangeText={(text) => {
+              // Handle decimal values properly
+              const numericValue = parseFloat(text);
+              onChange(isNaN(numericValue) ? undefined : numericValue);
+            }}
           />
         )}
       />
@@ -435,12 +453,12 @@ const OrderHistory = () => {
       >
         <View style={styles.modalContainer}>
           <ScrollView style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Measurements</Text>
+            <Text style={styles.modalTitle}>Add Measurements / پیمائش شامل کریں</Text>
             <Text style={styles.modalSubtitle}>
               For {selectedService?.name} - Order: {selectedOrder?.orderTrackingId}
             </Text>
             <Text style={styles.measurementNote}>
-              All measurements are in centimeters (cm). Fields are optional.
+              All measurements are in centimeters (cm). Fields are optional. / تمام پیمائشیں سینٹی میٹر میں ہیں۔ فیلڈز اختیاری ہیں۔
             </Text>
 
             <MeasurementInput
@@ -499,7 +517,7 @@ const OrderHistory = () => {
             />
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Notes</Text>
+              <Text style={styles.inputLabel}>{measurementLabels.notes}</Text>
               <Controller
                 control={measurementControl}
                 name="notes"
@@ -507,7 +525,7 @@ const OrderHistory = () => {
                   <TextInput
                     style={[styles.input, { height: 80 }]}
                     multiline
-                    placeholder="Additional notes or special instructions"
+                    placeholder="Additional notes or special instructions / اضافی نوٹس یا خصوصی ہدایات"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -530,7 +548,7 @@ const OrderHistory = () => {
                 {submittingMeasurement ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.submitButtonText}>Save Measurements</Text>
+                  <Text style={styles.submitButtonText}>Save Measurements / پیمائش محفوظ کریں</Text>
                 )}
               </TouchableOpacity>
             </View>

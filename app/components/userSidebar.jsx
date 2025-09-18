@@ -28,6 +28,7 @@ export default function UserSidebar() {
                   styles.iconContainer,
                   isActive && styles.activeIconContainer,
                 ]}
+                activeOpacity={0.7}
               >
                 <View
                   style={[
@@ -39,6 +40,7 @@ export default function UserSidebar() {
                     name={item.icon}
                     size={20}
                     color={isActive ? "#FFFFFF" : "#9CA3AF"}
+                    style={{ textAlign: "center" }}
                   />
                 </View>
                 <Text style={[styles.label, isActive && styles.activeLabel]}>
@@ -70,9 +72,9 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-evenly",
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   iconContainer: {
     alignItems: "center",
@@ -80,6 +82,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     minWidth: 70,
+    flex: 1,
   },
   activeIconContainer: {
     backgroundColor: "rgba(59, 130, 246, 0.1)",
@@ -93,6 +96,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     marginBottom: 6,
+    alignSelf: "center",
   },
   activeIconWrapper: {
     backgroundColor: "#3B82F6",
@@ -102,6 +106,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     textAlign: "center",
+    alignSelf: "center",
+    width: "100%",
   },
   activeLabel: {
     color: "#3B82F6",

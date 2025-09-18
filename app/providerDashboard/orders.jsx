@@ -10,6 +10,8 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -27,6 +29,20 @@ const statusOptions = [
   "delivered",
   "cancelled",
 ];
+
+// Urdu labels mapping
+const measurementLabels = {
+  chest: "Chest / سینہ",
+  waist: "Waist / کمر",
+  hips: "Hips / کولہے",
+  shoulder: "Shoulder / کندھا",
+  sleeveLength: "Sleeve Length / آستین کی لمبائی",
+  shirtLength: "Shirt Length / قمیض کی لمبائی",
+  trouserLength: "Trouser Length / پتلون کی لمبائی",
+  inseam: "Inseam / اندرونی سیون",
+  neck: "Neck / گردن",
+  notes: "Notes / نوٹس"
+};
 
 // Zod schema for measurement validation
 const measurementSchema = z.object({
@@ -140,21 +156,35 @@ const OrdersManager = () => {
     setStatusModalVisible(true);
   };
 
- const openMeasurementModal = (order) => {
+ const openMeasurementModal = async (order) => {
   setSelectedOrder(order);
 
-  // measurement array le rahe hain
-  const measurementData = Array.isArray(order.measurements) && order.measurements.length > 0 
-    ? order.measurements[0] 
-    : null;
+  try {
+    // Get current provider ID
+    const userData = await AsyncStorage.getItem("user");
+    const parsedUser = JSON.parse(userData);
+    const currentProviderId = parsedUser._id;
 
-  if (measurementData) {
-    // Fill form values with existing measurement data
-    Object.keys(measurementSchema.shape).forEach((key) => {
-      setValue(key, measurementData[key] ?? "");
-    });
-  } else {
-    reset(); // Clear form if no measurement found
+    // Check if order has measurements data
+    if (order.measurements && Array.isArray(order.measurements) && order.measurements.length > 0) {
+      const existingMeasurement = order.measurements.find(
+        (measurement) => measurement.serviceProviderId === currentProviderId
+      );
+
+      if (existingMeasurement) {
+        // Fill form values with existing measurement data
+        Object.keys(measurementSchema.shape).forEach((key) => {
+          setValue(key, existingMeasurement[key] ?? "");
+        });
+      } else {
+        reset(); // Clear form if no measurement found for this provider
+      }
+    } else {
+      reset(); // Clear form if no measurements found
+    }
+  } catch (error) {
+    console.error("Error loading measurement data:", error);
+    reset(); // Clear form on error
   }
 
   setMeasurementModal(true);
@@ -301,11 +331,20 @@ const OrdersManager = () => {
 
       {/* Measurement Modal */}
       <Modal visible={measurementModal} transparent animationType="slide">
-        <View style={styles.modalBackground}>
-          <View style={[styles.modalContainer, { maxHeight: "90%" }]}>
-            <ScrollView>
+        <KeyboardAvoidingView 
+          style={styles.modalBackground}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.modalScrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.modalContainer, { maxHeight: "90%" }]}>
+              <ScrollView>
               <Text style={styles.modalTitle}>
-                Add / Edit Measurement for Order {selectedOrder?.orderTrackingId}
+                Add / Edit Measurement for Order {selectedOrder?.orderTrackingId} / آرڈر کے لیے پیمائش شامل/ترمیم کریں
               </Text>
 
               {Object.keys(measurementSchema.shape).map((field) => {
@@ -317,9 +356,9 @@ const OrdersManager = () => {
                       name={field}
                       render={({ field: { onChange, value } }) => (
                         <View>
-                          <Text style={styles.measurementLabel}>Notes</Text>
+                          <Text style={styles.measurementLabel}>{measurementLabels[field]}</Text>
                           <TextInput
-                            placeholder="Notes"
+                            placeholder="Additional notes / اضافی نوٹس"
                             style={[styles.input, { height: 80 }]}
                             value={value}
                             onChangeText={onChange}
@@ -338,14 +377,18 @@ const OrdersManager = () => {
                     render={({ field: { onChange, value } }) => (
                       <View>
                         <Text style={styles.measurementLabel}>
-                          {field.charAt(0).toUpperCase() + field.slice(1)} (cm)
+                          {measurementLabels[field]} (cm)
                         </Text>
                         <TextInput
-                          placeholder={`${field.charAt(0).toUpperCase() + field.slice(1)} in cm`}
+                          placeholder={`${measurementLabels[field]} in cm`}
                           style={styles.input}
-                          keyboardType="numeric"
+                          keyboardType="decimal-pad"
                           value={value !== null && value !== undefined ? value.toString() : ""}
-                          onChangeText={(val) => onChange(Number(val))}
+                          onChangeText={(val) => {
+                            // Handle decimal values properly
+                            const numericValue = parseFloat(val);
+                            onChange(isNaN(numericValue) ? undefined : numericValue);
+                          }}
                         />
                       </View>
                     )}
@@ -357,7 +400,7 @@ const OrdersManager = () => {
                 style={[styles.statusButton, { marginTop: 10 }]}
                 onPress={handleSubmit(saveMeasurement)}
               >
-                <Text style={styles.buttonText}>Save Measurement</Text>
+                <Text style={styles.buttonText}>Save Measurement / پیمائش محفوظ کریں</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -366,9 +409,10 @@ const OrdersManager = () => {
               >
                 <Text style={styles.modalOptionText}>Cancel</Text>
               </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
+              </ScrollView>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -505,6 +549,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)", 
     justifyContent: "center", 
     alignItems: "center" 
+  },
+  modalScrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
   },
   modalContainer: { 
     width: "85%", 

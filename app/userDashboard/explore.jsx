@@ -13,6 +13,8 @@ import {
   Alert,
   Image,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import AnimatedReanimated, { FadeInUp } from "react-native-reanimated";
 import * as Location from "expo-location";
@@ -25,6 +27,7 @@ import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const orderSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters long"),
   address: z.string().min(5, "Address must be at least 5 characters long"),
   phone: z.string().regex(/^\d{10,15}$/, "Phone number must be 10-15 digits"),
   email: z.string().email("Invalid email address"),
@@ -45,51 +48,149 @@ const Explore = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
   const [quantities, setQuantities] = useState({});
+  const [fullName, setFullName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({});
   const [cardDetails, setCardDetails] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [allProviders, setAllProviders] = useState([]); // Store all providers for local search
   const { confirmPayment } = useStripe();
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(300)).current;
 
-  // Fetch offers & group by provider
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setErrors({ general: "Location permission is required." });
-          return;
-        }
+  // Helper functions for avatar generation
+  const getInitials = (name) => {
+    if (!name) return "SP";
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
-        let location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        const user = await AsyncStorage.getItem("user");
-        const token = user ? JSON.parse(user).accessToken : null;
+  const getAvatarColor = (name) => {
+    if (!name) return "#8A63D2";
+    const colors = [
+      "#8A63D2", "#50C878", "#FF6B6B", "#9B59B6",
+      "#E67E22", "#2ECC71", "#E74C3C", "#16A085"
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
 
-        const response = await axios.get(`${API_URL}/offers/nearby`, {
-          params: { lat: latitude, lng: longitude },
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // ✅ Updated grouping according to API response
-        const grouped = response.data.groupedOffers.map((group) => ({
-          serviceProvider: group.provider,
-          offers: group.offers,
-        }));
-
-        setGroupedOffers(grouped);
-      } catch (err) {
-        console.error(err);
-        setErrors({ general: "Failed to load offers." });
-      } finally {
+  // Function to fetch all providers (no search parameter)
+  const fetchProviders = async () => {
+    try {
+      setLoading(true);
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrors({ general: "Location permission is required." });
         setLoading(false);
+        return;
       }
-    })();
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+      const user = await AsyncStorage.getItem("user");
+      const token = user ? JSON.parse(user).accessToken : null;
+
+      const params = { lat: latitude, lng: longitude };
+
+      console.log("🔍 Fetching all providers with params:", params);
+
+      const response = await axios.get(`${API_URL}/offers/nearby`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("📦 API Response:", response.data);
+
+      // ✅ Updated grouping according to API response
+      const grouped = response.data.groupedOffers.map((group) => ({
+        serviceProvider: group.provider,
+        offers: group.offers,
+      }));
+
+      console.log("🎯 All providers loaded:", grouped.length);
+
+      // Store all providers for local search
+      setAllProviders(grouped);
+      setGroupedOffers(grouped);
+      setErrors({});
+    } catch (err) {
+      console.error("❌ Error fetching providers:", err);
+      setErrors({ general: "Failed to load providers." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchProviders();
   }, []);
+
+  // Local search function
+  const performLocalSearch = (query) => {
+    if (!query.trim()) {
+      // If no search query, show all providers
+      setGroupedOffers(allProviders);
+      return;
+    }
+
+    const searchTerm = query.toLowerCase().trim();
+    console.log("🔍 Performing local search for:", searchTerm);
+
+    const filteredProviders = allProviders.filter((provider) => {
+      const username = provider.serviceProvider.username?.toLowerCase() || "";
+      const shopAddress = provider.serviceProvider.shopAddress?.toLowerCase() || "";
+      const services = provider.serviceProvider.servicesOffered?.map(s => s.name?.toLowerCase()).join(" ") || "";
+
+      return (
+        username.includes(searchTerm) ||
+        shopAddress.includes(searchTerm) ||
+        services.includes(searchTerm)
+      );
+    });
+
+    console.log(`🔍 Found ${filteredProviders.length} providers matching "${searchTerm}"`);
+    setGroupedOffers(filteredProviders);
+  };
+
+  // Search functionality
+  const handleSearch = () => {
+    if (searchLoading) return;
+    
+    console.log("🔍 Frontend search triggered with query:", searchQuery);
+    setSearchLoading(true);
+    performLocalSearch(searchQuery);
+    setSearchLoading(false);
+  };
+
+  // Real-time search as user types (with debounce) - now using local search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      performLocalSearch(searchQuery);
+    }, 300); // Reduced debounce time since it's local search
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, allProviders]);
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSearchLoading(true);
+    performLocalSearch(""); // Clear search locally
+    setSearchLoading(false);
+  };
 
   useEffect(() => {
     if (paymentModalVisible) {
@@ -149,6 +250,7 @@ const Explore = () => {
   const handlePay = async () => {
     try {
       const payload = {
+        fullName,
         address,
         phone,
         email,
@@ -224,7 +326,8 @@ const Explore = () => {
         return;
       }
 
-      await axios.post(
+      console.log("🔍 Sending order creation request...");
+      const orderResponse = await axios.post(
         `${API_URL}/orders/createOrder`,
         {
           serviceProviderId: selectedOffer.providerId,
@@ -236,19 +339,37 @@ const Explore = () => {
           })),
           totalPayment: totalPKR,
           totalPaymentUSD: totalUSD,
-          address: { homeAddress: address, phoneNo: phone, email },
+          address: { fullName, homeAddress: address, phoneNo: phone, email },
           paymentIntentId: paymentIntent.id,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000 // 30 second timeout
+        }
       );
+      console.log("✅ Order creation response:", orderResponse.data);
 
       Alert.alert("Success", "Payment successful and order placed!");
       handleCancel();
     } catch (err) {
       console.error("Payment error:", err.response?.data || err.message);
+      console.error("Error type:", err.code);
+      console.error("Error message:", err.message);
+      
+      let errorMessage = "Payment failed. Please try again.";
+      
+      if (err.code === 'NETWORK_ERROR' || err.message.includes('Network Error')) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = "Request timeout. Please try again.";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      
       setErrors({
-        payment:
-          err.response?.data?.message || "Payment failed. Please try again.",
+        payment: errorMessage,
       });
     } finally {
       setPaymentLoading(false);
@@ -261,6 +382,7 @@ const Explore = () => {
     setPaymentModalVisible(false);
     setSelectedServices([]);
     setQuantities({});
+    setFullName("");
     setAddress("");
     setPhone("");
     setEmail("");
@@ -273,6 +395,7 @@ const Explore = () => {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#6200ea" />
+        <Text style={styles.loadingText}>Loading providers...</Text>
         {errors.general && (
           <Text style={styles.errorText}>{errors.general}</Text>
         )}
@@ -280,14 +403,79 @@ const Explore = () => {
     );
   }
 
+  // Debug: Show current state
+  console.log("🔍 Current state:", { 
+    loading, 
+    groupedOffers: groupedOffers.length, 
+    errors,
+    searchQuery 
+  });
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Nearby Service Providers</Text>
+      
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Icon name="search" size={16} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by provider name, shop address, or service..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
+              <Icon name="times" size={16} color="#666" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity 
+          style={[styles.searchButton, searchLoading && styles.searchButtonDisabled]} 
+          onPress={handleSearch}
+          disabled={searchLoading}
+        >
+          {searchLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Icon name="search" size={16} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
 
-      <FlatList
-        data={groupedOffers}
-        keyExtractor={(item) => item.serviceProvider._id}
-        renderItem={({ item, index }) => (
+      {/* Search Results Indicator */}
+      {searchQuery.trim() && (
+        <View style={styles.searchResultsContainer}>
+          <Text style={styles.searchResultsText}>
+            {groupedOffers.length} provider{groupedOffers.length !== 1 ? 's' : ''} found for "{searchQuery}"
+          </Text>
+        </View>
+      )}
+
+      {groupedOffers.length === 0 ? (
+        <View style={styles.noProvidersContainer}>
+          <MaterialIcons name="location-off" size={50} color="#999" />
+          <Text style={styles.noProvidersTitle}>
+            {searchQuery.trim() ? 'No Providers Found' : 'No Providers Found'}
+          </Text>
+          <Text style={styles.noProvidersText}>
+            {searchQuery.trim() 
+              ? `No service providers found matching "${searchQuery}" within 10km of your location.`
+              : 'No service providers found within 10km of your location.'
+            }
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => fetchProviders()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={groupedOffers}
+          keyExtractor={(item) => item.serviceProvider._id}
+          renderItem={({ item, index }) => (
           <AnimatedReanimated.View
             entering={FadeInUp.delay(index * 100).springify()}
           >
@@ -300,11 +488,28 @@ const Explore = () => {
             >
               <View style={styles.providerHeader}>
                 <View style={styles.avatarContainer}>
-                  <Icon name="user-circle" size={40} color="#6200ea" />
+                  {item.serviceProvider.profilePic ? (
+                    <Image 
+                      source={{ uri: item.serviceProvider.profilePic }} 
+                      style={styles.providerAvatar} 
+                    />
+                  ) : (
+                    <View style={[styles.providerAvatarPlaceholder, { backgroundColor: getAvatarColor(item.serviceProvider.username) }]}>
+                      <Text style={styles.providerAvatarText}>
+                        {getInitials(item.serviceProvider.username)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.providerInfo}>
                   <Text style={styles.providerName}>
                     {item.serviceProvider.username}
+                  </Text>
+                  <Text style={styles.providerServices}>
+                    {item.serviceProvider.servicesOffered?.length > 0 
+                      ? `${item.serviceProvider.servicesOffered.length} Services`
+                      : 'No services listed'
+                    }
                   </Text>
                 </View>
                 <Icon name="chevron-right" size={20} color="#999" />
@@ -327,13 +532,22 @@ const Explore = () => {
 
               <View style={styles.offersPreview}>
                 <Text style={styles.offersTitle}>
-                  Available Offers: {item.offers.length}
+                  {item.offers.length > 0 
+                    ? `Available Offers: ${item.offers.length}`
+                    : 'No active offers'
+                  }
                 </Text>
+                {item.offers.length === 0 && (
+                  <Text style={styles.noOffersText}>
+                    Provider available for direct contact
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           </AnimatedReanimated.View>
         )}
-      />
+        />
+      )}
 
       {/* Provider Details Modal */}
       <Modal visible={providerModalVisible} animationType="slide" transparent>
@@ -349,9 +563,26 @@ const Explore = () => {
             {selectedProvider && (
               <ScrollView>
                 <View style={styles.providerModalHeader}>
-                  <Icon name="user-circle" size={60} color="#6200ea" />
+                  {selectedProvider.serviceProvider.profilePic ? (
+                    <Image 
+                      source={{ uri: selectedProvider.serviceProvider.profilePic }} 
+                      style={styles.providerModalAvatar} 
+                    />
+                  ) : (
+                    <View style={[styles.providerModalAvatarPlaceholder, { backgroundColor: getAvatarColor(selectedProvider.serviceProvider.username) }]}>
+                      <Text style={styles.providerModalAvatarText}>
+                        {getInitials(selectedProvider.serviceProvider.username)}
+                      </Text>
+                    </View>
+                  )}
                   <Text style={styles.providerModalName}>
                     {selectedProvider.serviceProvider.username}
+                  </Text>
+                  <Text style={styles.providerModalServices}>
+                    {selectedProvider.serviceProvider.servicesOffered?.length > 0 
+                      ? `${selectedProvider.serviceProvider.servicesOffered.length} Services Available`
+                      : 'No services listed'
+                    }
                   </Text>
                 </View>
 
@@ -379,7 +610,8 @@ const Explore = () => {
 
                 <Text style={styles.sectionTitle}>Available Offers</Text>
 
-                {selectedProvider.offers.map((offer) => (
+                {selectedProvider.offers.length > 0 ? (
+                  selectedProvider.offers.map((offer) => (
                   <View key={offer._id} style={styles.offerCard}>
                     <View style={styles.offerHeader}>
                       <Text style={styles.offerTitle}>{offer.title}</Text>
@@ -440,7 +672,17 @@ const Explore = () => {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                ))}
+                ))
+                ) : (
+                  <View style={styles.noOffersContainer}>
+                    <Text style={styles.noOffersMessage}>
+                      This provider doesn't have any active offers at the moment.
+                    </Text>
+                    <Text style={styles.contactMessage}>
+                      You can contact them directly using the phone number above.
+                    </Text>
+                  </View>
+                )}
               </ScrollView>
             )}
           </View>
@@ -449,17 +691,44 @@ const Explore = () => {
 
       {/* Order Modal */}
       <Modal visible={orderModalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Order Details</Text>
-              <TouchableOpacity onPress={handleCancel}>
-                <Icon name="times" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView 
+          style={styles.modalContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.modalScrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Order Details</Text>
+                <TouchableOpacity onPress={handleCancel}>
+                  <Icon name="times" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
 
-            <ScrollView>
+              <ScrollView>
               <Text style={styles.sectionTitle}>Your Information</Text>
+
+              <View style={styles.inputContainer}>
+                <Icon
+                  name="user"
+                  size={16}
+                  color="#666"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+              </View>
+              {errors.fullName && (
+                <Text style={styles.errorText}>{errors.fullName}</Text>
+              )}
 
               <View style={styles.inputContainer}>
                 <Icon
@@ -588,23 +857,30 @@ const Explore = () => {
                   <Text style={styles.payButtonText}>Proceed to Payment</Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </View>
-        </View>
+              </ScrollView>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Payment Modal */}
       <Modal visible={paymentModalVisible} transparent animationType="slide">
-        <Animated.View
-          style={[
-            styles.paymentContainer,
-            { transform: [{ translateY: slideAnim }] },
-          ]}
+        <KeyboardAvoidingView 
+          style={styles.modalContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <ScrollView
-            contentContainerStyle={styles.paymentScrollContent}
-            keyboardShouldPersistTaps="handled"
+          <Animated.View
+            style={[
+              styles.paymentContainer,
+              { transform: [{ translateY: slideAnim }] },
+            ]}
           >
+            <ScrollView
+              contentContainerStyle={styles.paymentScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
             <View style={styles.paymentHeader}>
               <Text style={styles.paymentTitle}>Payment Details</Text>
               <TouchableOpacity onPress={handleCancel}>
@@ -654,8 +930,9 @@ const Explore = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          </ScrollView>
-        </Animated.View>
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -678,6 +955,47 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     color: "#333",
   },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 8,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
+  },
+  clearButton: {
+    padding: 4,
+  },
+  searchButton: {
+    backgroundColor: "#6200ea",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 44,
+  },
+  searchButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
@@ -688,6 +1006,58 @@ const styles = StyleSheet.create({
     color: "red",
     fontSize: 12,
     marginLeft: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#555',
+  },
+  noProvidersContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingVertical: 60,
+  },
+  noProvidersTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noProvidersText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#6200ea',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  searchResultsContainer: {
+    backgroundColor: '#E3F2FD',
+    padding: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  searchResultsText: {
+    color: '#1976D2',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   providerCard: {
     backgroundColor: "#fff",
@@ -709,6 +1079,27 @@ const styles = StyleSheet.create({
   avatarContainer: {
     marginRight: 12,
   },
+  providerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#6200ea',
+  },
+  providerAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#6200ea',
+  },
+  providerAvatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   providerInfo: {
     flex: 1,
   },
@@ -717,6 +1108,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#333",
     marginBottom: 4,
+  },
+  providerServices: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -751,10 +1147,41 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#6200ea",
   },
+  noOffersText: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  noOffersContainer: {
+    backgroundColor: "#f9f9f9",
+    padding: 20,
+    margin: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  noOffersMessage: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  contactMessage: {
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+    fontStyle: "italic",
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
+  },
+  modalScrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
   },
   modalContent: {
     backgroundColor: "#fff",
@@ -782,12 +1209,39 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
+  providerModalAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#6200ea',
+  },
+  providerModalAvatarPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#6200ea',
+  },
+  providerModalAvatarText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   providerModalName: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#333",
     marginTop: 12,
     marginBottom: 4,
+  },
+  providerModalServices: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginBottom: 8,
   },
   providerModalDetails: {
     padding: 16,

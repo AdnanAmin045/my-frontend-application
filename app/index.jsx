@@ -40,7 +40,7 @@ export default function Index() {
   const handleDashboardNavigation = () => {
     if (userRole === "customer") router.replace("/userDashboard");
     if (userRole === "provider") router.replace("/providerDashboard");
-    if  (userRole=== "Admin")   router.replace("/adminDashboard")
+    if (userRole === "Admin") router.replace("/adminDashboard");
   };
 
   const handleLogout = async () => {
@@ -93,24 +93,9 @@ export default function Index() {
         "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=400&q=80",
     },
     {
-      title: "Stitching",
-      image:
-        "https://images.unsplash.com/photo-1574180045827-681f8a1a9622?auto=format&fit=crop&w=400&q=80",
-    },
-    {
-      title: "Home Cleaning",
+      title: "Tailor",
       image:
         "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80",
-    },
-    {
-      title: "Repairs",
-      image:
-        "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
-    },
-    {
-      title: "Appliance Fix",
-      image:
-        "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80",
     },
   ];
 
@@ -119,16 +104,12 @@ export default function Index() {
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <Image
-          source={{
-            uri: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
-          }}
+          source={require("../assets/bgimage.png")}
           style={styles.heroImageMobile}
         />
+
         <View style={styles.heroContentMobile}>
-          <Image
-            source={icon}
-            style={styles.logo}
-          />
+          <Image source={icon} style={styles.logo} />
           <Text style={styles.heroTitleMobile}>
             All Your Daily Needs.{"\n"}
             <Text style={{ color: "#6366F1" }}>One App.</Text>
@@ -139,7 +120,9 @@ export default function Index() {
 
           {/* Buttons */}
           <View style={styles.heroButtonsMobile}>
-            <View style={{ flexDirection: "column", gap: 12, flexWrap: "wrap" }}>
+            <View
+              style={{ flexDirection: "column", gap: 12, flexWrap: "wrap" }}
+            >
               {accessToken ? (
                 <View style={{ flexDirection: "column", gap: 12 }}>
                   <Button

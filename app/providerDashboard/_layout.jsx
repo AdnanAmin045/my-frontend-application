@@ -17,6 +17,7 @@ export default function ProviderDashboardLayout() {
         <Stack.Screen name="orders" options={{ title: "Orders" }} />
         <Stack.Screen name="offers" options={{ title: "Offers" }} />
         <Stack.Screen name="riders" options={{ title: "Riders" }} />
+        <Stack.Screen name="payments" options={{ title: "Payments" }} />
       </Stack>
 
       {/* Sidebar should stay visible on all screens */}

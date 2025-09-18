@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Image,
+  TouchableOpacity,
 } from "react-native";
 import {
   Text,
@@ -23,6 +25,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { API_URL } from "../../baseURL";
+import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get("window");
 
@@ -44,6 +47,7 @@ const Signup = () => {
   const [secureTextConfirmPassword, setSecureTextConfirmPassword] = useState(true);
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [profilePic, setProfilePic] = useState(null);
 
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(signupSchema),
@@ -55,14 +59,45 @@ const Signup = () => {
     },
   });
 
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setProfilePic(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   const onSubmit = async (data) => {
     setLoading(true);
     try {
       console.log("Signup URL: ", `${API_URL}/users/register`);
-      const res = await axios.post(`${API_URL}/users/register`, {
-        username: data.username,
-        email: data.email,
-        password: data.password,
+      
+      const formData = new FormData();
+      formData.append('username', data.username);
+      formData.append('email', data.email);
+      formData.append('password', data.password);
+      
+      if (profilePic) {
+        formData.append('profilePic', {
+          uri: profilePic.uri,
+          type: 'image/jpeg',
+          name: 'profilePic.jpg',
+        });
+      }
+
+      const res = await axios.post(`${API_URL}/users/register`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (res.status === 201) {
@@ -72,6 +107,7 @@ const Signup = () => {
         Alert.alert("Error", "Signup failed! Try again.");
       }
     } catch (error) {
+      console.error("Signup error:", error);
       Alert.alert(
         "Network Error",
         "Something went wrong. Please check your connection and try again."
@@ -98,6 +134,32 @@ const Signup = () => {
             </View>
 
             <View style={styles.formContainer}>
+              {/* Profile Picture Selection */}
+              <View style={styles.profilePicContainer}>
+                <Text style={styles.label}>Profile Picture (Optional)</Text>
+                <View style={styles.profilePicWrapper}>
+                  <TouchableOpacity style={styles.profilePicButton} onPress={pickImage}>
+                    {profilePic ? (
+                      <View style={styles.profilePicContainer}>
+                        <Image source={{ uri: profilePic.uri }} style={styles.profilePic} />
+                        <TouchableOpacity 
+                          style={styles.removePicButton} 
+                          onPress={() => setProfilePic(null)}
+                        >
+                          <IconButton icon="close" size={16} iconColor="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.profilePicPlaceholder}>
+                        <IconButton icon="camera-plus" size={32} iconColor="#6C63FF" />
+                        <Text style={styles.profilePicText}>Add Photo</Text>
+                        <Text style={styles.profilePicSubtext}>Tap to select</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* Name */}
               <InputField control={control} name="username" label="Name" error={errors.username?.message} />
               {/* Email */}
@@ -241,6 +303,46 @@ const styles = StyleSheet.create({
   iconButton: { position: "absolute", right: 8, top: "28%", transform: [{ translateY: -11 }], zIndex: 2 },
   signUpButton: { borderRadius: 8, paddingVertical: 8, backgroundColor: "#6C63FF" },
   errorText: { color: "#EF4444", fontSize: 12, marginTop: 2 },
+  profilePicContainer: { alignItems: "center", marginBottom: 24 },
+  profilePicWrapper: { alignItems: "center", justifyContent: "center" },
+  profilePicButton: { alignItems: "center", justifyContent: "center" },
+  profilePic: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: "#6C63FF" },
+  profilePicPlaceholder: { 
+    width: 100, 
+    height: 100, 
+    borderRadius: 50, 
+    backgroundColor: "#F8FAFC", 
+    borderWidth: 2, 
+    borderColor: "#E2E8F0", 
+    borderStyle: "dashed", 
+    justifyContent: "center", 
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  profilePicText: { color: "#6C63FF", fontSize: 14, fontWeight: "600", marginTop: 6 },
+  profilePicSubtext: { color: "#94A3B8", fontSize: 11, marginTop: 2 },
+  removePicButton: { 
+    position: "absolute", 
+    top: -8, 
+    right: -8, 
+    backgroundColor: "#FF6B6B", 
+    borderRadius: 18, 
+    width: 36, 
+    height: 36, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.25, 
+    shadowRadius: 3.84, 
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
 });
 
 export default Signup;
