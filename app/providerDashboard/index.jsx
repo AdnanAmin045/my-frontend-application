@@ -10,6 +10,8 @@ import {
   Alert,
   Image,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import axios from "axios";
 import { API_URL } from "../../baseURL";
@@ -82,18 +84,34 @@ export default function ProviderProfile() {
 
   const pickImage = async () => {
     try {
+      // Request permissions first
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant permission to access your photo library to select a profile picture.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Settings', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
+          ]
+        );
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         await updateProfilePicture(result.assets[0]);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to pick image");
+      console.error("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
@@ -265,7 +283,16 @@ export default function ProviderProfile() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Header with gradient background */}
         <LinearGradient
           colors={['#8A63D2', '#A78BFA']}
@@ -369,6 +396,8 @@ export default function ProviderProfile() {
                     onChangeText={(text) => setFormData({...formData, phoneNo: text})}
                     placeholder="Enter phone number"
                     keyboardType="phone-pad"
+                    returnKeyType="next"
+                    blurOnSubmit={false}
                   />
                 ) : (
                   <Text style={styles.infoValue}>{provider.phoneNo || "Not provided"}</Text>
@@ -391,6 +420,8 @@ export default function ProviderProfile() {
                     value={formData.username}
                     onChangeText={(text) => setFormData({...formData, username: text})}
                     placeholder="Enter business name"
+                    returnKeyType="next"
+                    blurOnSubmit={false}
                   />
                 ) : (
                   <Text style={styles.infoValue}>{provider.username}</Text>
@@ -412,6 +443,8 @@ export default function ProviderProfile() {
                     placeholder="Enter shop address"
                     multiline
                     numberOfLines={3}
+                    returnKeyType="done"
+                    blurOnSubmit={true}
                   />
                 ) : (
                   <Text style={styles.infoValue}>{provider.shopAddress || "Not provided"}</Text>
@@ -423,7 +456,8 @@ export default function ProviderProfile() {
           {/* Services Offered Card */}
          
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -433,8 +467,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,

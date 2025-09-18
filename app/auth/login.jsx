@@ -62,26 +62,17 @@ const Login = () => {
     setLoading(true);
     try {
       if (role === "Admin") {
-        // Admin login - use new admin endpoint
-        const response = await axios.post(`${API_URL}/admin/login`, {
-          username: data.email, // Can use email or username
-          password: data.password,
-        });
+        // Admin login - use unified endpoint with OTP
+        const payload = { ...data, role };
+        const response = await axios.post(`${API_URL}/users/login`, payload);
         
         if (response.status === 200) {
-          const { admin, accessToken } = response.data.data;
-          await AsyncStorage.setItem(
-            "user",
-            JSON.stringify({ 
-              accessToken, 
-              role: "Admin",
-              adminData: admin,
-              username: admin.username,
-              email: admin.email
-            })
-          );
-          showSnackbar("Admin Login Successfully!", "success");
-          router.push("adminDashboard");
+          const { userId, email, role: userRole } = response.data.data;
+          // Redirect to OTP verification
+          router.push({
+            pathname: "/auth/loginOTP",
+            params: { email, userId, role: userRole }
+          });
         }
       } else {
         // Customer/Provider login - use existing endpoint

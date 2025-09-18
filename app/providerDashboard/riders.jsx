@@ -21,9 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // Zod schema for validation
 const riderSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  CNIC: z
-    .string()
-    .regex(/^\d{5}-\d{7}-\d{1}$/, "CNIC must be in format 12345-1234567-1"),
+  address: z.string().min(5, "Address must be at least 5 characters"),
   phoneNo: z.string().regex(/^\d{11}$/, "Phone number must be 11 digits"),
 });
 
@@ -76,7 +74,8 @@ const RiderManagement = () => {
       setFilteredRiders(riders);
     } else {
       const filtered = riders.filter((r) =>
-        r.name.toLowerCase().includes(text.toLowerCase())
+        r.name.toLowerCase().includes(text.toLowerCase()) ||
+        r.address.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredRiders(filtered);
     }
@@ -86,7 +85,7 @@ const RiderManagement = () => {
     if (rider) {
       setEditingRider(rider);
       setValue("name", rider.name);
-      setValue("CNIC", rider.CNIC);
+      setValue("address", rider.address);
       setValue("phoneNo", rider.phoneNo);
     } else {
       setEditingRider(null);
@@ -165,7 +164,7 @@ const RiderManagement = () => {
   const renderRider = ({ item }) => (
     <View style={styles.tableRow}>
       <Text style={styles.cell}>{item.name}</Text>
-      <Text style={styles.cell}>{item.CNIC}</Text>
+      <Text style={styles.cell}>{item.address}</Text>
       <Text style={styles.cell}>{item.phoneNo}</Text>
       <View style={styles.cellActions}>
         <TouchableOpacity
@@ -198,7 +197,7 @@ const RiderManagement = () => {
 
       <TextInput
         style={styles.searchInput}
-        placeholder="Search by Name..."
+        placeholder="Search by Name or Address..."
         value={searchQuery}
         onChangeText={handleSearch}
       />
@@ -211,7 +210,7 @@ const RiderManagement = () => {
         <ScrollView horizontal>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              {["Name", "CNIC", "Phone", "Actions"].map((head) => (
+              {["Name", "Address", "Phone", "Actions"].map((head) => (
                 <Text style={[styles.cell, styles.headerCell]} key={head}>
                   {head}
                 </Text>
@@ -254,19 +253,21 @@ const RiderManagement = () => {
               />
               <Controller
                 control={control}
-                name="CNIC"
+                name="address"
                 render={({ field: { onChange, value } }) => (
                   <View style={styles.formGroup}>
-                    <Text style={styles.label}>CNIC</Text>
+                    <Text style={styles.label}>Address</Text>
                     <TextInput
-                      style={[styles.input, errors.CNIC && styles.errorInput]}
+                      style={[styles.input, errors.address && styles.errorInput]}
                       value={value}
                       onChangeText={onChange}
-                      placeholder="12345-1234567-1"
+                      placeholder="Enter rider address"
+                      multiline
+                      numberOfLines={3}
                     />
-                    {errors.CNIC && (
+                    {errors.address && (
                       <Text style={styles.errorText}>
-                        {errors.CNIC.message}
+                        {errors.address.message}
                       </Text>
                     )}
                   </View>
@@ -305,6 +306,7 @@ const RiderManagement = () => {
                 <TouchableOpacity
                   style={[styles.btn, styles.btnPrimary]}
                   onPress={handleSubmit(onSubmit)}
+                  disabled={isLoading}
                 >
                   <Text style={styles.btnText}>
                     {isLoading

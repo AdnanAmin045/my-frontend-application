@@ -52,7 +52,13 @@ export default function OtpVerification() {
 
 
       // Navigate based on role
-      router.push(userRole === "customer" ? "/userDashboard" : "/providerDashboard");
+      if (userRole === "customer") {
+        router.push("/userDashboard");
+      } else if (userRole === "provider") {
+        router.push("/providerDashboard");
+      } else if (userRole === "Admin") {
+        router.push("/adminDashboard");
+      }
     } catch (error) {
       setSnackbar({
         visible: true,

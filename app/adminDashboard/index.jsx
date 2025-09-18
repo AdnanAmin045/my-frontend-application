@@ -34,6 +34,11 @@ const AdminDashboard = () => {
     newPassword: "",
     confirmPassword: "",
   });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
 
   useEffect(() => {
     fetchAdminData();
@@ -147,8 +152,22 @@ const AdminDashboard = () => {
       });
       Alert.alert("Success", "Password updated successfully!");
     } catch (error) {
-      console.error("Error updating password:", error);
-      Alert.alert("Error", error.response?.data?.message || "Failed to update password");
+      // Handle specific error cases with proper alerts
+      if (error.response?.data?.message) {
+        if (error.response.data.message.includes("Current password is incorrect")) {
+          Alert.alert("Error", "Your current password is incorrect. Please enter the correct password.");
+        } else if (error.response.data.message.includes("Failed to update password")) {
+          Alert.alert("Error", "Failed to update password. Please try again.");
+        } else {
+          Alert.alert("Error", error.response.data.message);
+        }
+      } else if (error.response?.status === 401) {
+        Alert.alert("Error", "Session expired. Please login again.");
+      } else if (error.response?.status === 400) {
+        Alert.alert("Error", "Invalid request. Please check your information.");
+      } else {
+        Alert.alert("Error", "Network error. Please check your connection and try again.");
+      }
     }
   };
 
@@ -156,8 +175,23 @@ const AdminDashboard = () => {
     try {
       console.log("🔍 Starting image picker...");
       
+      // Request permissions first
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant permission to access your photo library to select a profile picture.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Settings', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
+          ]
+        );
+        return;
+      }
+      
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -173,7 +207,7 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error("❌ Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image");
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
@@ -344,7 +378,7 @@ const AdminDashboard = () => {
           >
             <MaterialIcons name="lock" size={20} color="#6200ee" />
             <Text style={styles.changePasswordText}>Change Password</Text>
-            <MaterialIcons name="arrow-forward-ios" size={16} color="#6200ee" />
+            <Ionicons name="chevron-forward" size={16} color="#6200ee" />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -372,35 +406,71 @@ const AdminDashboard = () => {
               <View style={styles.modalBody}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Current Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={passwordData.currentPassword}
-                    onChangeText={(text) => setPasswordData({ ...passwordData, currentPassword: text })}
-                    placeholder="Enter current password"
-                    secureTextEntry
-                  />
+                  <View style={styles.passwordInputContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      value={passwordData.currentPassword}
+                      onChangeText={(text) => setPasswordData({ ...passwordData, currentPassword: text })}
+                      placeholder="Enter current password"
+                      secureTextEntry={!showPasswords.current}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeButton}
+                      onPress={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    >
+                      <Ionicons
+                        name={showPasswords.current ? "eye-off" : "eye"}
+                        size={20}
+                        color="#666"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>New Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={passwordData.newPassword}
-                    onChangeText={(text) => setPasswordData({ ...passwordData, newPassword: text })}
-                    placeholder="Enter new password"
-                    secureTextEntry
-                  />
+                  <View style={styles.passwordInputContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      value={passwordData.newPassword}
+                      onChangeText={(text) => setPasswordData({ ...passwordData, newPassword: text })}
+                      placeholder="Enter new password"
+                      secureTextEntry={!showPasswords.new}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeButton}
+                      onPress={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                    >
+                      <Ionicons
+                        name={showPasswords.new ? "eye-off" : "eye"}
+                        size={20}
+                        color="#666"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Confirm New Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={passwordData.confirmPassword}
-                    onChangeText={(text) => setPasswordData({ ...passwordData, confirmPassword: text })}
-                    placeholder="Confirm new password"
-                    secureTextEntry
-                  />
+                  <View style={styles.passwordInputContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      value={passwordData.confirmPassword}
+                      onChangeText={(text) => setPasswordData({ ...passwordData, confirmPassword: text })}
+                      placeholder="Confirm new password"
+                      secureTextEntry={!showPasswords.confirm}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeButton}
+                      onPress={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                    >
+                      <Ionicons
+                        name={showPasswords.confirm ? "eye-off" : "eye"}
+                        size={20}
+                        color="#666"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
@@ -415,7 +485,7 @@ const AdminDashboard = () => {
                   style={styles.modalSaveButton}
                   onPress={handleChangePassword}
                 >
-                  <Text style={styles.modalSaveButtonText}>Update Password</Text>
+                  <Text style={styles.modalSaveButtonText}>Update</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -618,67 +688,107 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   modalScrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 20,
+    width: "100%",
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    width: "90%",
-    maxHeight: "80%",
+    borderRadius: 16,
+    width: "100%",
+    maxWidth: 400,
+    maxHeight: "85%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+    backgroundColor: "#F8F9FA",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "700",
     color: "#1F2937",
   },
   modalBody: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   inputLabel: {
     fontSize: 16,
     fontWeight: "600",
     color: "#374151",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFFFF",
+    color: "#1F2937",
+  },
+  passwordInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#1F2937",
+  },
+  eyeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalFooter: {
     flexDirection: "row",
-    padding: 20,
-    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    gap: 16,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
+    backgroundColor: "#F8F9FA",
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   modalCancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: "#D1D5DB",
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
   },
   modalCancelButtonText: {
     fontSize: 16,
@@ -687,10 +797,15 @@ const styles = StyleSheet.create({
   },
   modalSaveButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     backgroundColor: "#6200ee",
     alignItems: "center",
+    shadowColor: "#6200ee",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   modalSaveButtonText: {
     fontSize: 16,

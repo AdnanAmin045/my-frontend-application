@@ -21,6 +21,7 @@ import { API_URL } from "../../baseURL";
 const ProviderPayments = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [adminPaymentHistory, setAdminPaymentHistory] = useState([]);
@@ -104,6 +105,7 @@ const ProviderPayments = () => {
   };
 
   const handleSaveMethod = async () => {
+    setSaving(true);
     try {
       const userData = await AsyncStorage.getItem("user");
       const parsedUser = JSON.parse(userData);
@@ -135,6 +137,8 @@ const ProviderPayments = () => {
       console.error("Error updating payment method:", error);
       console.error("Error response:", error.response?.data);
       Alert.alert("Error", "Failed to update payment method");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -322,9 +326,14 @@ const ProviderPayments = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Payment Method</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#666" />
+              <Text style={styles.modalTitle}>
+                {saving ? "Saving Payment Method..." : "Edit Payment Method"}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setEditModalVisible(false)}
+                disabled={saving}
+              >
+                <MaterialIcons name="close" size={24} color={saving ? "#9CA3AF" : "#666"} />
               </TouchableOpacity>
             </View>
 
@@ -337,9 +346,11 @@ const ProviderPayments = () => {
                       key={method}
                       style={[
                         styles.methodOption,
-                        formData.paymentMethod === method && styles.methodOptionSelected
+                        formData.paymentMethod === method && styles.methodOptionSelected,
+                        saving && styles.methodOptionDisabled
                       ]}
                       onPress={() => setFormData({ ...formData, paymentMethod: method })}
+                      disabled={saving}
                     >
                       <FontAwesome5 name={getPaymentMethodIcon(method)} size={16} color={formData.paymentMethod === method ? "#fff" : "#666"} />
                       <Text style={[
@@ -356,21 +367,23 @@ const ProviderPayments = () => {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Account Title</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, saving && styles.inputDisabled]}
                   value={formData.accountTitle}
                   onChangeText={(text) => setFormData({ ...formData, accountTitle: text })}
                   placeholder="Enter account title"
+                  editable={!saving}
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Account Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, saving && styles.inputDisabled]}
                   value={formData.accountNumber}
                   onChangeText={(text) => setFormData({ ...formData, accountNumber: text })}
                   placeholder="Enter account number"
                   keyboardType="numeric"
+                  editable={!saving}
                 />
               </View>
 
@@ -378,10 +391,11 @@ const ProviderPayments = () => {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Bank Name</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, saving && styles.inputDisabled]}
                     value={formData.bankName}
                     onChangeText={(text) => setFormData({ ...formData, bankName: text })}
                     placeholder="Enter bank name"
+                    editable={!saving}
                   />
                 </View>
               )}
@@ -390,16 +404,22 @@ const ProviderPayments = () => {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, saving && styles.cancelButtonDisabled]}
                 onPress={() => setEditModalVisible(false)}
+                disabled={saving}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, saving && styles.cancelButtonTextDisabled]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveMethod}
+                disabled={saving}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -690,6 +710,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#8A63D2',
     borderColor: '#8A63D2',
   },
+  methodOptionDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    opacity: 0.7,
+  },
   methodOptionText: {
     marginLeft: 6,
     fontSize: 14,
@@ -707,6 +732,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#F9FAFB',
   },
+  inputDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    opacity: 0.7,
+  },
   modalFooter: {
     flexDirection: 'row',
     padding: 20,
@@ -722,10 +752,17 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     alignItems: 'center',
   },
+  cancelButtonDisabled: {
+    borderColor: '#9CA3AF',
+    opacity: 0.7,
+  },
   cancelButtonText: {
     fontSize: 16,
     color: '#6B7280',
     fontWeight: '600',
+  },
+  cancelButtonTextDisabled: {
+    color: '#9CA3AF',
   },
   saveButton: {
     flex: 1,
@@ -733,6 +770,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#8A63D2',
     alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+    opacity: 0.7,
   },
   saveButtonText: {
     fontSize: 16,

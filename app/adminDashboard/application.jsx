@@ -22,7 +22,7 @@ import { useRouter } from "expo-router";
 export default function ApplicationsPage() {
   const router = useRouter();
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({}); // Changed to object to track individual loading states
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
@@ -61,7 +61,8 @@ export default function ApplicationsPage() {
   // Update Approval Status
   const updateApproval = async (id, newStatus) => {
     try {
-      setLoading(true);
+      // Set loading state for this specific provider
+      setLoading(prev => ({ ...prev, [id]: true }));
 
       const token = await AsyncStorage.getItem("user");
       const accessToken = token ? JSON.parse(token).accessToken : null;
@@ -92,7 +93,8 @@ export default function ApplicationsPage() {
     } catch (error) {
       Alert.alert("Error", error?.response?.data?.message || error.message);
     } finally {
-      setLoading(false);
+      // Clear loading state for this specific provider
+      setLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -252,9 +254,9 @@ export default function ApplicationsPage() {
                       <TouchableOpacity
                         style={[styles.button, styles.rejectButton]}
                         onPress={() => updateApproval(app._id, false)}
-                        disabled={loading}
+                        disabled={loading[app._id]}
                       >
-                        {loading ? (
+                        {loading[app._id] ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <View
@@ -273,9 +275,9 @@ export default function ApplicationsPage() {
                       <TouchableOpacity
                         style={[styles.button, styles.approveButton]}
                         onPress={() => updateApproval(app._id, true)}
-                        disabled={loading}
+                        disabled={loading[app._id]}
                       >
-                        {loading ? (
+                        {loading[app._id] ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <View

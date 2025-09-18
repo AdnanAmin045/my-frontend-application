@@ -23,6 +23,7 @@ import { useRouter } from "expo-router";
 import { z } from "zod";
 import { CardField, useStripe } from "@stripe/stripe-react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialIcons } from '@expo/vector-icons';
 import { API_URL } from "../../baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -696,11 +697,7 @@ const Explore = () => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <ScrollView 
-            contentContainerStyle={styles.modalScrollContainer}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.modalScrollContainer}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Order Details</Text>
@@ -709,7 +706,11 @@ const Explore = () => {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView>
+              <ScrollView 
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
               <Text style={styles.sectionTitle}>Your Information</Text>
 
               <View style={styles.inputContainer}>
@@ -841,11 +842,13 @@ const Explore = () => {
                 </View>
               ))}
 
+              </ScrollView>
+              
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total:</Text>
                 <Text style={styles.totalAmount}>PKR: {calculateTotal()}</Text>
               </View>
-
+              
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -857,9 +860,8 @@ const Explore = () => {
                   <Text style={styles.payButtonText}>Proceed to Payment</Text>
                 </TouchableOpacity>
               </View>
-              </ScrollView>
             </View>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -870,17 +872,18 @@ const Explore = () => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <Animated.View
-            style={[
-              styles.paymentContainer,
-              { transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <ScrollView
-              contentContainerStyle={styles.paymentScrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+          <View style={styles.paymentModalContainer}>
+            <Animated.View
+              style={[
+                styles.paymentContainer,
+                { transform: [{ translateY: slideAnim }] },
+              ]}
             >
+              <ScrollView
+                contentContainerStyle={styles.paymentScrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
             <View style={styles.paymentHeader}>
               <Text style={styles.paymentTitle}>Payment Details</Text>
               <TouchableOpacity onPress={handleCancel}>
@@ -931,7 +934,8 @@ const Explore = () => {
               </View>
             </View>
             </ScrollView>
-          </Animated.View>
+            </Animated.View>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -1178,17 +1182,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalScrollContainer: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 20,
+    paddingHorizontal: 10,
   },
   modalContent: {
     backgroundColor: "#fff",
-    margin: 20,
+    margin: 10,
     borderRadius: 16,
-    maxHeight: "80%",
+    maxHeight: "90%",
+    width: "95%",
     overflow: "hidden",
+    flex: 1,
+  },
+  modalBody: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",
@@ -1449,9 +1459,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
+  paymentModalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   paymentContainer: {
-    position: "absolute",
-    bottom: 0,
     width: "100%",
     backgroundColor: "#fff",
     borderTopLeftRadius: 16,
@@ -1461,6 +1473,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+    maxHeight: "80%",
+  },
+  paymentScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   paymentHeader: {
     flexDirection: "row",

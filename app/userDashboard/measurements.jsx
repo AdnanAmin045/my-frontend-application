@@ -197,14 +197,14 @@ const MeasurementDisplay = () => {
                 <View style={styles.measurementItem}>
                   <Text style={styles.measurementLabel}>{measurementLabels.chest}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.chest || "Not provided / دستیاب نہیں"} cm
+                    {selectedProvider.measurements.chest || "Not provided / دستیاب نہیں"} inches
                   </Text>
                 </View>
 
                 <View style={styles.measurementItem}>
                   <Text style={styles.measurementLabel}>{measurementLabels.waist}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.waist || "Not provided / دستیاب نہیں"} cm
+                    {selectedProvider.measurements.waist || "Not provided / دستیاب نہیں"} inches
                   </Text>
                 </View>
               </View>
@@ -213,7 +213,7 @@ const MeasurementDisplay = () => {
                 <View style={styles.measurementItem}>
                   <Text style={styles.measurementLabel}>{measurementLabels.hips}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.hips || "Not provided / دستیاب نہیں"} cm
+                    {selectedProvider.measurements.hips || "Not provided / دستیاب نہیں"} inches
                   </Text>
                 </View>
 
@@ -221,7 +221,7 @@ const MeasurementDisplay = () => {
                   <Text style={styles.measurementLabel}>{measurementLabels.shoulder}</Text>
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.shoulder || "Not provided / دستیاب نہیں"}{" "}
-                    cm
+                    inches
                   </Text>
                 </View>
               </View>
@@ -232,7 +232,7 @@ const MeasurementDisplay = () => {
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.sleeveLength ||
                       "Not provided / دستیاب نہیں"}{" "}
-                    cm
+                    inches
                   </Text>
                 </View>
 
@@ -241,7 +241,7 @@ const MeasurementDisplay = () => {
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.shirtLength ||
                       "Not provided / دستیاب نہیں"}{" "}
-                    cm
+                    inches
                   </Text>
                 </View>
               </View>
@@ -252,14 +252,14 @@ const MeasurementDisplay = () => {
                   <Text style={styles.measurementValue}>
                     {selectedProvider.measurements.trouserLength ||
                       "Not provided / دستیاب نہیں"}{" "}
-                    cm
+                    inches
                   </Text>
                 </View>
 
                 <View style={styles.measurementItem}>
                   <Text style={styles.measurementLabel}>{measurementLabels.inseam}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.inseam || "Not provided / دستیاب نہیں"} cm
+                    {selectedProvider.measurements.inseam || "Not provided / دستیاب نہیں"} inches
                   </Text>
                 </View>
               </View>
@@ -268,7 +268,7 @@ const MeasurementDisplay = () => {
                 <View style={[styles.measurementItem, styles.fullWidthItem]}>
                   <Text style={styles.measurementLabel}>{measurementLabels.neck}</Text>
                   <Text style={styles.measurementValue}>
-                    {selectedProvider.measurements.neck || "Not provided / دستیاب نہیں"} cm
+                    {selectedProvider.measurements.neck || "Not provided / دستیاب نہیں"} inches
                   </Text>
                 </View>
               </View>

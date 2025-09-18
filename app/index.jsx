@@ -8,10 +8,13 @@ import {
   Dimensions,
   TouchableOpacity,
   Linking,
+  StatusBar,
 } from "react-native";
 import { Button, Text, Card } from "react-native-paper";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from '@expo/vector-icons';
 import icon from "../assets/icon.png";
 
 const { width } = Dimensions.get("window");
@@ -70,296 +73,686 @@ export default function Index() {
 
   const partners = [
     {
-      name: "Surf Excel",
-      logo: "https://1000logos.net/wp-content/uploads/2021/05/Surf-Excel-logo.png",
-      url: "https://www.surfexcel.com/",
+      name: "Sparkle Wash",
+      logo: "https://cdn-icons-png.flaticon.com/512/2917/2917995.png", // washing machine icon
+      url: "#",
+      service: "Laundry"
     },
     {
-      name: "ServiceSew",
-      logo: "https://cdn-icons-png.flaticon.com/512/1046/1046857.png",
-      url: "https://www.tailorbrands.com/",
+      name: "Tide",
+      logo: "https://cdn-icons-png.flaticon.com/512/2917/2917995.png", // washing machine icon
+      url: "#",
+      service: "Laundry"
     },
     {
-      name: "CleanPro",
-      logo: "https://cdn-icons-png.flaticon.com/512/2917/2917995.png",
-      url: "https://www.cleanpro.com/",
+      name: "Master Tailor",
+      logo: "https://cdn-icons-png.flaticon.com/512/2875/2875883.png", // sewing machine icon
+      url: "#",
+      service: "Tailoring"
+    },
+    {
+      name: "Perfect Stitch",
+      logo: "https://cdn-icons-png.flaticon.com/512/2909/2909761.png", // needle & thread icon
+      url: "#",
+      service: "Tailoring"
     },
   ];
+  
 
   const services = [
     {
       title: "Laundry",
       image:
-        "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=400&q=80",
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=400&q=80",
+      description: "Professional washing, drying, and ironing services"
     },
     {
       title: "Tailor",
       image:
-        "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+      description: "Custom stitching, alterations, and garment repairs"
     },
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Hero Section */}
-      <View style={styles.heroSection}>
-        <Image
-          source={require("../assets/bgimage.png")}
-          style={styles.heroImageMobile}
-        />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Hero Section */}
+        <LinearGradient
+          colors={['#8B5CF6', '#A78BFA', '#C4B5FD']}
+          style={styles.heroSection}
+        >
+          <View style={styles.heroContent}>
+            <Animated.View style={[styles.logoContainer, { opacity: fadeAnim }]}>
+              <View style={styles.logoWrapper}>
+                <Image source={icon} style={styles.logo} />
+              </View>
+              <Text style={styles.appName}>TailorWash</Text>
+            </Animated.View>
+            
+            <Animated.View style={[styles.heroTextContainer, { opacity: fadeAnim }]}>
+              <Text style={styles.heroTitle}>
+                All Your Daily Needs.{"\n"}
+                <Text style={styles.heroTitleAccent}>One App.</Text>
+              </Text>
+              <Text style={styles.heroSubtitle}>
+                Book laundry and tailoring services from trusted local professionals.
+              </Text>
+            </Animated.View>
 
-        <View style={styles.heroContentMobile}>
-          <Image source={icon} style={styles.logo} />
-          <Text style={styles.heroTitleMobile}>
-            All Your Daily Needs.{"\n"}
-            <Text style={{ color: "#6366F1" }}>One App.</Text>
-          </Text>
-          <Text style={styles.heroSubtitleMobile}>
-            Book laundry, stitching, cleaning, and more from trusted local pros.
-          </Text>
+            {/* Feature Icons */}
+            <Animated.View style={[styles.featureIcons, { opacity: fadeAnim }]}>
+              <View style={styles.featureIcon}>
+                <Ionicons name="shirt-outline" size={24} color="#1f2937" />
+                <Text style={styles.featureText}>Laundry</Text>
+              </View>
+              <View style={styles.featureIcon}>
+                <Ionicons name="cut-outline" size={24} color="#1f2937" />
+                <Text style={styles.featureText}>Tailoring</Text>
+              </View>
+            </Animated.View>
 
-          {/* Buttons */}
-          <View style={styles.heroButtonsMobile}>
-            <View
-              style={{ flexDirection: "column", gap: 12, flexWrap: "wrap" }}
-            >
+            {/* Buttons */}
+            <Animated.View style={[styles.heroButtons, { opacity: fadeAnim }]}>
               {accessToken ? (
-                <View style={{ flexDirection: "column", gap: 12 }}>
-                  <Button
-                    key="dashboard"
-                    mode="contained"
-                    style={[styles.centerButton, styles.dashboardButton]}
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
                     onPress={handleDashboardNavigation}
-                    labelStyle={{ fontWeight: "bold" }}
                   >
-                    Go to Dashboard
-                  </Button>
-                  <Button
-                    key="logout"
-                    mode="outlined"
-                    style={[styles.centerButton, styles.logoutButton]}
+                    <LinearGradient
+                      colors={['#fff', '#f8fafc']}
+                      style={styles.buttonGradient}
+                    >
+                      <Ionicons name="grid-outline" size={20} color="#8B5CF6" />
+                      <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
                     onPress={handleLogout}
-                    labelStyle={{ fontWeight: "bold", color: "#6366F1" }}
                   >
-                    Logout
-                  </Button>
+                    <Ionicons name="log-out-outline" size={20} color="#fff" />
+                    <Text style={styles.secondaryButtonText}>Logout</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
-                <View style={{ flexDirection: "column", gap: 12 }}>
-                  <Button
-                    key="login"
-                    mode="outlined"
-                    style={[styles.centerButton, styles.logoutButton]}
-                    onPress={() => router.push("/auth/login")}
-                    labelStyle={{ fontWeight: "bold", color: "#6366F1" }}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    key="signup"
-                    mode="contained"
-                    style={[styles.centerButton, styles.dashboardButton]}
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
                     onPress={() => router.push("/auth/signUp")}
-                    labelStyle={{ fontWeight: "bold" }}
                   >
-                    Signup
-                  </Button>
+                    <LinearGradient
+                      colors={['#fff', '#f8fafc']}
+                      style={styles.buttonGradient}
+                    >
+                      <Ionicons name="person-add-outline" size={20} color="#8B5CF6" />
+                      <Text style={styles.primaryButtonText}>Get Started</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => router.push("/auth/login")}
+                  >
+                    <Ionicons name="log-in-outline" size={20} color="#fff" />
+                    <Text style={styles.secondaryButtonText}>Login</Text>
+                  </TouchableOpacity>
                 </View>
               )}
+            </Animated.View>
+          </View>
+        </LinearGradient>
+
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>1000+</Text>
+            <Text style={styles.statLabel}>Happy Customers</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>50+</Text>
+            <Text style={styles.statLabel}>Service Providers</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>24/7</Text>
+            <Text style={styles.statLabel}>Support</Text>
+          </View>
+        </View>
+
+        {/* Popular Services */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeading}>Popular Services</Text>
+            <Text style={styles.sectionSubheading}>Choose from our wide range of services</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
+            {services.map((item, index) => (
+              <TouchableOpacity key={index} style={styles.serviceCard}>
+                <View style={styles.serviceImageContainer}>
+                  <Image source={{ uri: item.image }} style={styles.serviceImage} />
+                  <View style={styles.serviceOverlay}>
+                    <Ionicons 
+                      name={
+                        item.title === "Laundry" ? "shirt-outline" : 
+                        "cut-outline"
+                      } 
+                      size={32} 
+                      color="#fff" 
+                    />
+                  </View>
+                </View>
+                <View style={styles.serviceContent}>
+                  <Text style={styles.serviceTitle}>{item.title}</Text>
+                  <Text style={styles.serviceDesc}>
+                    {item.description}
+                  </Text>
+                  <View style={styles.serviceRating}>
+                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <Text style={styles.ratingText}>4.8</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Testimonials */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeading}>What Our Users Say</Text>
+            <Text style={styles.sectionSubheading}>Real feedback from our satisfied customers</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
+            {testimonials.map((t, idx) => (
+              <View key={idx} style={styles.testimonialCard}>
+                <View style={styles.testimonialHeader}>
+                  <Image source={{ uri: t.avatar }} style={styles.testimonialAvatar} />
+                  <View style={styles.testimonialRating}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons key={star} name="star" size={16} color="#FFD700" />
+                    ))}
+                  </View>
+                </View>
+                <Text style={styles.testimonialText}>"{t.text}"</Text>
+                <Text style={styles.testimonialName}>- {t.name}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Partners */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeading}>Our Trusted Partners</Text>
+            <Text style={styles.sectionSubheading}>Working with industry leaders in laundry & tailoring</Text>
+          </View>
+          
+          {/* Laundry Partners */}
+          <View style={styles.partnerCategory}>
+            <Text style={styles.partnerCategoryTitle}>Laundry Partners</Text>
+            <View style={styles.partnersContainer}>
+              {partners.filter(p => p.service === "Laundry").map((p, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.partnerCard}
+                  onPress={() => p.url !== "#" && Linking.openURL(p.url)}
+                >
+                  <Text style={styles.partnerName}>{p.name}</Text>
+                  <Text style={styles.partnerService}>{p.service}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Tailoring Partners */}
+          <View style={styles.partnerCategory}>
+            <Text style={styles.partnerCategoryTitle}>Tailoring Partners</Text>
+            <View style={styles.partnersContainer}>
+              {partners.filter(p => p.service === "Tailoring").map((p, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.partnerCard}
+                  onPress={() => p.url !== "#" && Linking.openURL(p.url)}
+                >
+                  <Text style={styles.partnerName}>{p.name}</Text>
+                  <Text style={styles.partnerService}>{p.service}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <View style={styles.footerContent}>
+            <View style={styles.footerLogo}>
+              <Image source={icon} style={styles.footerLogoImage} />
+              <Text style={styles.footerAppName}>TailorWash</Text>
+            </View>
+            <Text style={styles.footerText}>
+              Your trusted partner for all daily service needs
+            </Text>
+            <View style={styles.footerIcons}>
+              <TouchableOpacity style={styles.footerIcon}>
+                <Ionicons name="call-outline" size={20} color="#8B5CF6" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.footerIcon}>
+                <Ionicons name="mail-outline" size={20} color="#8B5CF6" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.footerIcon}>
+                <Ionicons name="location-outline" size={20} color="#8B5CF6" />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
-      </View>
-
-      {/* Popular Services */}
-      <Text style={styles.sectionHeading}>Popular Services</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.horizontalScroll}
-      >
-        {services.map((item, index) => (
-          <Card key={index} style={styles.serviceCard}>
-            <Card.Cover
-              source={{ uri: item.image }}
-              style={styles.serviceImage}
-            />
-            <Card.Content>
-              <Text style={styles.serviceTitle}>{item.title}</Text>
-              <Text style={styles.serviceDesc}>
-                Reliable & affordable {item.title.toLowerCase()} service near
-                you.
-              </Text>
-            </Card.Content>
-          </Card>
-        ))}
       </ScrollView>
-
-      {/* Testimonials */}
-      <Text style={styles.sectionHeading}>What Our Users Say</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.horizontalScroll}
-      >
-        {testimonials.map((t, idx) => (
-          <View key={idx} style={styles.testimonialCard}>
-            <Image
-              source={{ uri: t.avatar }}
-              style={styles.testimonialAvatar}
-            />
-            <Text style={styles.testimonialText}>"{t.text}"</Text>
-            <Text style={styles.testimonialName}>- {t.name}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      {/* Partners */}
-      <Text style={styles.sectionHeading}>Our Partners</Text>
-      <View style={styles.partnersContainer}>
-        {partners.map((p, idx) => (
-          <TouchableOpacity
-            key={idx}
-            style={styles.partnerLogoWrap}
-            onPress={() => Linking.openURL(p.url)}
-          >
-            <Image source={{ uri: p.logo }} style={styles.partnerLogo} />
-            <Text style={styles.partnerName}>{p.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4FF" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#f8fafc" 
+  },
+  
+  // Hero Section Styles
   heroSection: {
-    backgroundColor: "#EEF2FF",
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    minHeight: 500,
+  },
+  heroContent: {
     alignItems: "center",
     justifyContent: "center",
   },
-  heroImageMobile: {
-    width: "100%",
-    height: 180,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    marginBottom: -30,
-  },
-  heroContentMobile: {
-    width: "90%",
-    alignSelf: "center",
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    marginTop: -40,
-    padding: 20,
+  logoContainer: {
     alignItems: "center",
+    marginBottom: 30,
+  },
+  logoWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: 12,
-    marginBottom: 10,
-    backgroundColor: "#EEF2FF",
   },
-  heroTitleMobile: {
+  appName: {
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#22223B",
-    fontSize: 26,
-    textAlign: "center",
-    marginBottom: 8,
-    marginTop: 2,
+    color: "#1f2937",
+    letterSpacing: 1,
   },
-  heroSubtitleMobile: {
-    color: "#6C6C80",
-    fontSize: 15,
-    marginBottom: 18,
-    textAlign: "center",
+  heroTextContainer: {
+    alignItems: "center",
+    marginBottom: 30,
   },
-  heroButtonsMobile: { justifyContent: "center", alignItems: "center" },
-  centerButton: {
-    borderRadius: 8,
-    paddingVertical: 10,
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#1f2937",
+    textAlign: "center",
+    marginBottom: 12,
+    lineHeight: 40,
+  },
+  heroTitleAccent: {
+    color: "#fbbf24",
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    color: "#4b5563",
+    textAlign: "center",
+    lineHeight: 24,
+    paddingHorizontal: 20,
+  },
+  featureIcons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  featureIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    minWidth: 80,
+  },
+  featureText: {
+    color: "#1f2937",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+  heroButtons: {
+    width: "100%",
+    paddingHorizontal: 20,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  primaryButton: {
+    flex: 2,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    minWidth: 140,
+    gap: 8,
   },
-  dashboardButton: { backgroundColor: "#6366F1" },
-  logoutButton: {
-    borderColor: "#6366F1",
-    borderWidth: 1.5,
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#8B5CF6",
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1f2937",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#374151",
+    gap: 6,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+
+  // Stats Section
+  statsSection: {
+    flexDirection: "row",
     backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 1,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#8B5CF6",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "#e5e7eb",
+    marginHorizontal: 16,
+  },
+
+  // Section Styles
+  sectionContainer: {
+    marginTop: 40,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    marginBottom: 20,
   },
   sectionHeading: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    color: "#111827",
-    letterSpacing: 0.2,
+    color: "#1f2937",
+    marginBottom: 8,
   },
-  horizontalScroll: { paddingLeft: 16, paddingBottom: 10 },
+  sectionSubheading: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  horizontalScroll: {
+    marginLeft: -20,
+  },
+  horizontalScrollContent: {
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+
+  // Service Cards
   serviceCard: {
-    width: 180,
-    marginRight: 16,
-    marginBottom: 10,
-    elevation: 2,
+    width: 200,
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 20,
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: "hidden",
+  },
+  serviceImageContainer: {
+    position: "relative",
+    height: 120,
   },
   serviceImage: {
-    height: 100,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    width: "100%",
+    height: "100%",
   },
-  serviceTitle: { color: "#22223B", fontWeight: "bold", marginTop: 8 },
-  serviceDesc: { color: "#6C6C80", marginTop: 2, marginBottom: 4 },
-  testimonialCard: {
-    width: 240,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 18,
-    marginRight: 16,
-    alignItems: "center",
-    elevation: 2,
-  },
-  testimonialAvatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    marginBottom: 8,
-  },
-  testimonialText: {
-    fontStyle: "italic",
-    color: "#374151",
-    fontSize: 15,
-    marginBottom: 6,
-    textAlign: "center",
-  },
-  testimonialName: { color: "#6366F1", fontWeight: "bold", fontSize: 15 },
-  partnersContainer: {
-    flexDirection: "row",
+  serviceOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(99, 102, 241, 0.8)",
     justifyContent: "center",
     alignItems: "center",
-    gap: 18,
-    paddingVertical: 16,
-    flexWrap: "wrap",
   },
-  partnerLogoWrap: {
-    alignItems: "center",
-    marginHorizontal: 10,
+  serviceContent: {
+    padding: 16,
+  },
+  serviceTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1f2937",
     marginBottom: 8,
   },
-  partnerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    marginBottom: 4,
-    backgroundColor: "#fff",
+  serviceDesc: {
+    fontSize: 14,
+    color: "#6b7280",
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  partnerName: { fontSize: 13, color: "#374151", fontWeight: "600" },
+  serviceRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+
+  // Testimonials
+  testimonialCard: {
+    width: 280,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  testimonialHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  testimonialAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  testimonialRating: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  testimonialText: {
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 22,
+    marginBottom: 16,
+    fontStyle: "italic",
+  },
+  testimonialName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#8B5CF6",
+  },
+
+  // Partners
+  partnerCategory: {
+    marginBottom: 32,
+  },
+  partnerCategoryTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#8B5CF6",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  partnersContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  partnerCard: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    minWidth: 120,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+  },
+  partnerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  partnerService: {
+    fontSize: 12,
+    color: "#8B5CF6",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+
+  // Footer
+  footer: {
+    backgroundColor: "#1f2937",
+    marginTop: 40,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  footerContent: {
+    alignItems: "center",
+  },
+  footerLogo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  footerLogoImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+  footerAppName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#9ca3af",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  footerIcons: {
+    flexDirection: "row",
+    gap: 20,
+  },
+  footerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#374151",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

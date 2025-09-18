@@ -46,15 +46,15 @@ const measurementLabels = {
 
 // Zod schema for measurement validation
 const measurementSchema = z.object({
-  chest: z.number({ required_error: "Chest is required" }),
-  waist: z.number({ required_error: "Waist is required" }),
-  hips: z.number({ required_error: "Hips is required" }),
-  shoulder: z.number({ required_error: "Shoulder is required" }),
-  sleeveLength: z.number({ required_error: "Sleeve length is required" }),
-  shirtLength: z.number({ required_error: "Shirt length is required" }),
-  trouserLength: z.number({ required_error: "Trouser length is required" }),
-  inseam: z.number({ required_error: "Inseam is required" }),
-  neck: z.number({ required_error: "Neck is required" }),
+  chest: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  waist: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  hips: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  shoulder: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  sleeveLength: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  shirtLength: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  trouserLength: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  inseam: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
+  neck: z.string().optional().refine((val) => !val || /^\d+(\.\d{1,2})?$/.test(val), "Invalid decimal format (max 2 decimal places)"),
   notes: z.string().max(500).optional(),
 });
 
@@ -66,20 +66,21 @@ const OrdersManager = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [measurementModal, setMeasurementModal] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [savingMeasurement, setSavingMeasurement] = useState(false);
 
   const { control, handleSubmit, formState: { errors }, reset, setValue } =
     useForm({
       resolver: zodResolver(measurementSchema),
       defaultValues: {
-        chest: null,
-        waist: null,
-        hips: null,
-        shoulder: null,
-        sleeveLength: null,
-        shirtLength: null,
-        trouserLength: null,
-        inseam: null,
-        neck: null,
+        chest: "",
+        waist: "",
+        hips: "",
+        shoulder: "",
+        sleeveLength: "",
+        shirtLength: "",
+        trouserLength: "",
+        inseam: "",
+        neck: "",
         notes: "",
       },
     });
@@ -131,23 +132,52 @@ const OrdersManager = () => {
   };
 
   const saveMeasurement = async (data) => {
+    console.log("Save measurement called with data:", data);
+    console.log("Selected order:", selectedOrder);
+    
+    setSavingMeasurement(true);
+    
+    // Validate the data before sending
+    try {
+      const validatedData = measurementSchema.parse(data);
+      console.log("Validation passed, validated data:", validatedData);
+    } catch (validationError) {
+      console.error("Validation error:", validationError);
+      alert("Please check your input values. Some fields have invalid format.");
+      setSavingMeasurement(false);
+      return;
+    }
+    
     try {
       const user = await AsyncStorage.getItem("user");
       const token = user ? JSON.parse(user).accessToken : null;
+      
+      console.log("Token available:", !!token);
+      console.log("Order tracking ID:", selectedOrder?.orderTrackingId);
 
-      await axios.patch(
+      if (!selectedOrder?.orderTrackingId) {
+        alert("No order selected");
+        setSavingMeasurement(false);
+        return;
+      }
+
+      const response = await axios.patch(
         `${API_URL}/orders/addMeasurement/${selectedOrder.orderTrackingId}`,
         { measurements: data },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      console.log("Save measurement response:", response.data);
       alert("Measurement saved successfully");
       setMeasurementModal(false);
       reset();
       fetchOrders();
     } catch (err) {
-      console.error(err);
-      alert("Failed to save measurement");
+      console.error("Error saving measurement:", err);
+      console.error("Error response:", err.response?.data);
+      alert(`Failed to save measurement: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setSavingMeasurement(false);
     }
   };
 
@@ -163,24 +193,74 @@ const OrdersManager = () => {
     // Get current provider ID
     const userData = await AsyncStorage.getItem("user");
     const parsedUser = JSON.parse(userData);
-    const currentProviderId = parsedUser._id;
+    
+    // Extract provider ID from the JWT token or user data
+    let currentProviderId = null;
+    
+    if (parsedUser?.accessToken) {
+      try {
+        // Decode JWT token to get the provider ID
+        const tokenParts = parsedUser.accessToken.split('.');
+        if (tokenParts.length === 3) {
+          const payload = tokenParts[1];
+          // Add padding if needed
+          const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+          const decodedPayload = atob(paddedPayload);
+          const tokenPayload = JSON.parse(decodedPayload);
+          currentProviderId = tokenPayload._id;
+        }
+      } catch (tokenError) {
+        console.error("Error decoding token:", tokenError);
+      }
+    }
+    
+    // Fallback to direct user data fields
+    if (!currentProviderId) {
+      currentProviderId = parsedUser?._id || parsedUser?.id || parsedUser?.userId;
+    }
+
+    console.log("Order data:", order);
+    console.log("Current provider ID:", currentProviderId);
+    console.log("Parsed user data:", parsedUser);
+    console.log("User measurements:", order.user?.measurements);
 
     // Check if order has measurements data
-    if (order.measurements && Array.isArray(order.measurements) && order.measurements.length > 0) {
-      const existingMeasurement = order.measurements.find(
-        (measurement) => measurement.serviceProviderId === currentProviderId
-      );
+    if (order.user && order.user.measurements && Array.isArray(order.user.measurements) && order.user.measurements.length > 0) {
+      let existingMeasurement = null;
+      
+      // First try to find measurement for this specific provider
+      if (currentProviderId) {
+        existingMeasurement = order.user.measurements.find(
+          (measurement) => measurement.serviceProviderId === currentProviderId || 
+                          measurement.serviceProviderId === currentProviderId.toString()
+        );
+      }
+      
+      // If no specific provider measurement found, use the first available measurement
+      if (!existingMeasurement && order.user.measurements.length > 0) {
+        existingMeasurement = order.user.measurements[0];
+        console.log("Using first available measurement as fallback");
+      }
+
+      console.log("Existing measurement found:", existingMeasurement);
 
       if (existingMeasurement) {
         // Fill form values with existing measurement data
         Object.keys(measurementSchema.shape).forEach((key) => {
-          setValue(key, existingMeasurement[key] ?? "");
+          if (key !== 'notes') {
+            setValue(key, existingMeasurement[key] ?? "");
+          } else {
+            setValue(key, existingMeasurement[key] ?? "");
+          }
         });
+        console.log("Form values set with existing measurement data");
       } else {
-        reset(); // Clear form if no measurement found for this provider
+        reset(); // Clear form if no measurement found
+        console.log("No measurement data available, form reset");
       }
     } else {
       reset(); // Clear form if no measurements found
+      console.log("No measurements found for this order, form reset");
     }
   } catch (error) {
     console.error("Error loading measurement data:", error);
@@ -346,6 +426,10 @@ const OrdersManager = () => {
               <Text style={styles.modalTitle}>
                 Add / Edit Measurement for Order {selectedOrder?.orderTrackingId} / آرڈر کے لیے پیمائش شامل/ترمیم کریں
               </Text>
+              
+              <Text style={styles.measurementNote}>
+                All measurements are in inches with decimal support (max 2 decimal places). Fields are required. / تمام پیمائشیں انچ میں ہیں (2 اعشاریہ جگہوں تک)۔ فیلڈز ضروری ہیں۔
+              </Text>
 
               {Object.keys(measurementSchema.shape).map((field) => {
                 if (field === "notes") {
@@ -377,17 +461,35 @@ const OrdersManager = () => {
                     render={({ field: { onChange, value } }) => (
                       <View>
                         <Text style={styles.measurementLabel}>
-                          {measurementLabels[field]} (cm)
+                          {measurementLabels[field]} (inches)
                         </Text>
                         <TextInput
-                          placeholder={`${measurementLabels[field]} in cm`}
+                          placeholder={`${measurementLabels[field]} in inches`}
                           style={styles.input}
                           keyboardType="decimal-pad"
-                          value={value !== null && value !== undefined ? value.toString() : ""}
+                          value={value || ""}
                           onChangeText={(val) => {
-                            // Handle decimal values properly
-                            const numericValue = parseFloat(val);
-                            onChange(isNaN(numericValue) ? undefined : numericValue);
+                            // Handle decimal values properly (up to 2 decimal places)
+                            if (val === "" || val === null) {
+                              onChange("");
+                              return;
+                            }
+                            
+                            // Allow only numbers and one decimal point
+                            const cleanVal = val.replace(/[^0-9.]/g, '');
+                            
+                            // Ensure only one decimal point
+                            const parts = cleanVal.split('.');
+                            if (parts.length > 2) {
+                              return; // Don't update if more than one decimal point
+                            }
+                            
+                            // Limit to 2 decimal places
+                            if (parts[1] && parts[1].length > 2) {
+                              return; // Don't update if more than 2 decimal places
+                            }
+                            
+                            onChange(cleanVal);
                           }}
                         />
                       </View>
@@ -397,15 +499,21 @@ const OrdersManager = () => {
               })}
 
               <TouchableOpacity
-                style={[styles.statusButton, { marginTop: 10 }]}
+                style={[styles.statusButton, { marginTop: 10, opacity: savingMeasurement ? 0.7 : 1 }]}
                 onPress={handleSubmit(saveMeasurement)}
+                disabled={savingMeasurement}
               >
-                <Text style={styles.buttonText}>Save Measurement / پیمائش محفوظ کریں</Text>
+                {savingMeasurement ? (
+                  <Text style={styles.buttonText}>Saving... / محفوظ ہو رہا ہے...</Text>
+                ) : (
+                  <Text style={styles.buttonText}>Save Measurement / پیمائش محفوظ کریں</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalOption, { backgroundColor: "#ccc", marginTop: 10 }]}
+                style={[styles.modalOption, { backgroundColor: "#ccc", marginTop: 10, opacity: savingMeasurement ? 0.7 : 1 }]}
                 onPress={() => setMeasurementModal(false)}
+                disabled={savingMeasurement}
               >
                 <Text style={styles.modalOptionText}>Cancel</Text>
               </TouchableOpacity>
@@ -596,6 +704,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     marginTop: 8,
     color: '#333',
+  },
+  measurementNote: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   feedbackContainer: { 
     marginTop: 10, 

@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -39,17 +41,17 @@ const reviewSchema = z.object({
   comment: z.string().optional(),
 });
 
-// Measurement schema - all fields optional but must be numbers if provided
+// Measurement schema - all fields optional but must be valid decimal strings if provided
 const measurementSchema = z.object({
-  chest: z.number().optional(),
-  waist: z.number().optional(),
-  hips: z.number().optional(),
-  shoulder: z.number().optional(),
-  sleeveLength: z.number().optional(),
-  shirtLength: z.number().optional(),
-  trouserLength: z.number().optional(),
-  inseam: z.number().optional(),
-  neck: z.number().optional(),
+  chest: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  waist: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  hips: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  shoulder: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  sleeveLength: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  shirtLength: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  trouserLength: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  inseam: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
+  neck: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid decimal format (max 2 decimal places)").optional().or(z.literal("")),
   notes: z.string().optional(),
 });
 
@@ -89,15 +91,15 @@ const OrderHistory = () => {
   } = useForm({
     resolver: zodResolver(measurementSchema),
     defaultValues: {
-      chest: undefined,
-      waist: undefined,
-      hips: undefined,
-      shoulder: undefined,
-      sleeveLength: undefined,
-      shirtLength: undefined,
-      trouserLength: undefined,
-      inseam: undefined,
-      neck: undefined,
+      chest: "",
+      waist: "",
+      hips: "",
+      shoulder: "",
+      sleeveLength: "",
+      shirtLength: "",
+      trouserLength: "",
+      inseam: "",
+      neck: "",
       notes: "",
     },
   });
@@ -292,8 +294,38 @@ const OrderHistory = () => {
         </TouchableOpacity>
       )}
 
-      {/* Feedback Given Message */}
-      {item.isFeedBackGiven && (
+      {/* Review Display */}
+      {item.isFeedBackGiven && item.review && (
+        <View style={styles.reviewContainer}>
+          <Text style={styles.reviewTitle}>Your Review:</Text>
+          <View style={styles.reviewRating}>
+            <Text style={styles.reviewRatingText}>Rating: </Text>
+            <View style={styles.starsDisplay}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Text
+                  key={star}
+                  style={[
+                    styles.star,
+                    star <= item.review.rating ? styles.starFilled : styles.starEmpty
+                  ]}
+                >
+                  ★
+                </Text>
+              ))}
+            </View>
+            <Text style={styles.reviewRatingNumber}>({item.review.rating}/5)</Text>
+          </View>
+          {item.review.comment && (
+            <Text style={styles.reviewComment}>"{item.review.comment}"</Text>
+          )}
+          <Text style={styles.reviewDate}>
+            Reviewed on: {new Date(item.review.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+      )}
+
+      {/* Feedback Given Message (fallback) */}
+      {item.isFeedBackGiven && !item.review && (
         <Text style={styles.feedbackGivenText}>
           Thank you for your feedback!
         </Text>
@@ -304,20 +336,38 @@ const OrderHistory = () => {
   // Measurement input field component
   const MeasurementInput = ({ name, label, control, errors }) => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>{measurementLabels[name]} (cm)</Text>
+      <Text style={styles.inputLabel}>{measurementLabels[name]} (inches)</Text>
       <Controller
         control={control}
         name={name}
         render={({ field: { onChange, value } }) => (
           <TextInput
             style={styles.input}
-            placeholder={`Enter ${measurementLabels[name]} in cm`}
+            placeholder={`Enter ${measurementLabels[name]} in inches`}
             keyboardType="decimal-pad"
-            value={value ? value.toString() : ""}
+            value={value || ""}
             onChangeText={(text) => {
-              // Handle decimal values properly
-              const numericValue = parseFloat(text);
-              onChange(isNaN(numericValue) ? undefined : numericValue);
+              // Handle decimal values properly (up to 2 decimal places)
+              if (text === "" || text === null) {
+                onChange("");
+                return;
+              }
+              
+              // Allow only numbers and one decimal point
+              const cleanVal = text.replace(/[^0-9.]/g, '');
+              
+              // Ensure only one decimal point
+              const parts = cleanVal.split('.');
+              if (parts.length > 2) {
+                return; // Don't update if more than one decimal point
+              }
+              
+              // Limit to 2 decimal places
+              if (parts[1] && parts[1].length > 2) {
+                return; // Don't update if more than 2 decimal places
+              }
+              
+              onChange(cleanVal);
             }}
           />
         )}
@@ -451,14 +501,18 @@ const OrderHistory = () => {
         visible={measurementModalVisible}
         onRequestClose={closeMeasurementModal}
       >
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView 
+          style={styles.modalContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        >
           <ScrollView style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add Measurements / پیمائش شامل کریں</Text>
             <Text style={styles.modalSubtitle}>
               For {selectedService?.name} - Order: {selectedOrder?.orderTrackingId}
             </Text>
             <Text style={styles.measurementNote}>
-              All measurements are in centimeters (cm). Fields are optional. / تمام پیمائشیں سینٹی میٹر میں ہیں۔ فیلڈز اختیاری ہیں۔
+              All measurements are in inches with decimal support (max 2 decimal places). Fields are optional. / تمام پیمائشیں انچ میں ہیں (2 اعشاریہ جگہوں تک)۔ فیلڈز اختیاری ہیں۔
             </Text>
 
             <MeasurementInput
@@ -553,7 +607,7 @@ const OrderHistory = () => {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -737,6 +791,61 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
   },
+  reviewContainer: {
+    backgroundColor: "#f8fafc",
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#10b981",
+  },
+  reviewTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 6,
+  },
+  reviewRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  reviewRatingText: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginRight: 6,
+  },
+  starsDisplay: {
+    flexDirection: "row",
+    marginRight: 6,
+  },
+  star: {
+    fontSize: 20,
+    marginRight: 1,
+  },
+  starFilled: {
+    color: "#fbbf24",
+  },
+  starEmpty: {
+    color: "#d1d5db",
+  },
+  reviewRatingNumber: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  reviewComment: {
+    fontSize: 12,
+    color: "#374151",
+    fontStyle: "italic",
+    marginBottom: 6,
+    lineHeight: 16,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: "#9ca3af",
+    textAlign: "right",
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -777,9 +886,6 @@ const styles = StyleSheet.create({
   },
   starButton: {
     padding: 4,
-  },
-  star: {
-    fontSize: 32,
   },
   filledStar: {
     color: "#ffc107",
