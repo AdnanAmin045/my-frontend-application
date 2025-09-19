@@ -116,11 +116,11 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
+      <StatusBar barStyle="dark-content" backgroundColor="#E0E7FF" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <LinearGradient
-          colors={['#8B5CF6', '#A78BFA', '#C4B5FD']}
+          colors={['#E0E7FF', '#F3E8FF', '#FAF5FF']}
           style={styles.heroSection}
         >
           <View style={styles.heroContent}>

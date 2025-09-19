@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../baseURL";
+import { profileUploadService } from "../../utils/profileUpload";
 
 const AdminDashboard = () => {
   const [adminData, setAdminData] = useState(null);
@@ -39,6 +40,7 @@ const AdminDashboard = () => {
     new: false,
     confirm: false,
   });
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
     fetchAdminData();
@@ -122,6 +124,8 @@ const AdminDashboard = () => {
   };
 
   const handleChangePassword = async () => {
+    if (updatingPassword) return; // Prevent multiple submissions
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       Alert.alert("Error", "New passwords do not match");
       return;
@@ -131,6 +135,13 @@ const AdminDashboard = () => {
       Alert.alert("Error", "New password must be at least 6 characters long");
       return;
     }
+
+    if (!passwordData.currentPassword.trim()) {
+      Alert.alert("Error", "Please enter your current password");
+      return;
+    }
+
+    setUpdatingPassword(true);
 
     try {
       const userData = await AsyncStorage.getItem("user");
@@ -152,10 +163,23 @@ const AdminDashboard = () => {
       });
       Alert.alert("Success", "Password updated successfully!");
     } catch (error) {
+      
       // Handle specific error cases with proper alerts
       if (error.response?.data?.message) {
         if (error.response.data.message.includes("Current password is incorrect")) {
-          Alert.alert("Error", "Your current password is incorrect. Please enter the correct password.");
+          Alert.alert(
+            "Incorrect Password", 
+            "The current password you entered is incorrect. Please check and try again.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  // Clear current password field
+                  setPasswordData({ ...passwordData, currentPassword: "" });
+                }
+              }
+            ]
+          );
         } else if (error.response.data.message.includes("Failed to update password")) {
           Alert.alert("Error", "Failed to update password. Please try again.");
         } else {
@@ -168,6 +192,8 @@ const AdminDashboard = () => {
       } else {
         Alert.alert("Error", "Network error. Please check your connection and try again.");
       }
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -206,56 +232,31 @@ const AdminDashboard = () => {
         console.log("🔍 Image picker was canceled or no assets");
       }
     } catch (error) {
-      console.error("❌ Error picking image:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
   const uploadProfilePicture = async (imageUri) => {
     try {
-      console.log("🔍 Starting profile picture upload...");
-      console.log("🔍 Image URI:", imageUri);
-      
-      const userData = await AsyncStorage.getItem("user");
-      const parsedUser = JSON.parse(userData);
-      const token = parsedUser.accessToken;
-
-      console.log("🔍 User token available:", !!token);
-
-      const formData = new FormData();
-      formData.append('profilePic', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'profile.jpg',
-      });
-
-      console.log("🔍 FormData created, sending request...");
-
-      const response = await axios.put(`${API_URL}/admin/profile-pic`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+      await profileUploadService.uploadProfilePicture(
+        imageUri,
+        'admin',
+        // Success callback
+        (data) => {
+          setAdminData(data);
+          Alert.alert("Success", "Profile picture updated successfully!");
         },
-      });
-
-      console.log("🔍 Upload response:", response.data);
-
-      // Update stored admin data
-      const updatedUserData = {
-        ...parsedUser,
-        adminData: response.data.data,
-      };
-      await AsyncStorage.setItem("user", JSON.stringify(updatedUserData));
-
-      setAdminData(response.data.data);
-      Alert.alert("Success", "Profile picture updated successfully!");
+        // Error callback
+        (errorMessage) => {
+          Alert.alert("Error", errorMessage);
+        },
+        // Progress callback (optional)
+        (progress) => {
+          console.log(`📤 Upload progress: ${progress}%`);
+        }
+      );
     } catch (error) {
-      console.error("❌ Error uploading profile picture:", error);
-      console.error("❌ Error response:", error.response?.data);
-      console.error("❌ Error status:", error.response?.status);
-      
-      const errorMessage = error.response?.data?.message || error.message || "Failed to upload profile picture";
-      Alert.alert("Error", errorMessage);
+      Alert.alert("Error", "Failed to upload profile picture. Please try again.");
     }
   };
 
@@ -270,25 +271,19 @@ const AdminDashboard = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              const userData = await AsyncStorage.getItem("user");
-              const parsedUser = JSON.parse(userData);
-              const token = parsedUser.accessToken;
-
-              const response = await axios.delete(`${API_URL}/admin/profile-pic`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              // Update stored admin data
-              const updatedUserData = {
-                ...parsedUser,
-                adminData: response.data.data,
-              };
-              await AsyncStorage.setItem("user", JSON.stringify(updatedUserData));
-
-              setAdminData(response.data.data);
-              Alert.alert("Success", "Profile picture removed successfully!");
+              await profileUploadService.removeProfilePicture(
+                'admin',
+                // Success callback
+                (data) => {
+                  setAdminData(data);
+                  Alert.alert("Success", "Profile picture removed successfully!");
+                },
+                // Error callback
+                (errorMessage) => {
+                  Alert.alert("Error", errorMessage);
+                }
+              );
             } catch (error) {
-              console.error("Error removing profile picture:", error);
               Alert.alert("Error", "Failed to remove profile picture");
             }
           },
@@ -408,11 +403,12 @@ const AdminDashboard = () => {
                   <Text style={styles.inputLabel}>Current Password</Text>
                   <View style={styles.passwordInputContainer}>
                     <TextInput
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, updatingPassword && styles.passwordInputDisabled]}
                       value={passwordData.currentPassword}
                       onChangeText={(text) => setPasswordData({ ...passwordData, currentPassword: text })}
                       placeholder="Enter current password"
                       secureTextEntry={!showPasswords.current}
+                      editable={!updatingPassword}
                     />
                     <TouchableOpacity
                       style={styles.eyeButton}
@@ -431,11 +427,12 @@ const AdminDashboard = () => {
                   <Text style={styles.inputLabel}>New Password</Text>
                   <View style={styles.passwordInputContainer}>
                     <TextInput
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, updatingPassword && styles.passwordInputDisabled]}
                       value={passwordData.newPassword}
                       onChangeText={(text) => setPasswordData({ ...passwordData, newPassword: text })}
                       placeholder="Enter new password"
                       secureTextEntry={!showPasswords.new}
+                      editable={!updatingPassword}
                     />
                     <TouchableOpacity
                       style={styles.eyeButton}
@@ -454,11 +451,12 @@ const AdminDashboard = () => {
                   <Text style={styles.inputLabel}>Confirm New Password</Text>
                   <View style={styles.passwordInputContainer}>
                     <TextInput
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, updatingPassword && styles.passwordInputDisabled]}
                       value={passwordData.confirmPassword}
                       onChangeText={(text) => setPasswordData({ ...passwordData, confirmPassword: text })}
                       placeholder="Confirm new password"
                       secureTextEntry={!showPasswords.confirm}
+                      editable={!updatingPassword}
                     />
                     <TouchableOpacity
                       style={styles.eyeButton}
@@ -476,16 +474,25 @@ const AdminDashboard = () => {
 
               <View style={styles.modalFooter}>
                 <TouchableOpacity
-                  style={styles.modalCancelButton}
+                  style={[styles.modalCancelButton, updatingPassword && styles.modalCancelButtonDisabled]}
                   onPress={() => setPasswordModalVisible(false)}
+                  disabled={updatingPassword}
                 >
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                  <Text style={[styles.modalCancelButtonText, updatingPassword && styles.modalCancelButtonTextDisabled]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.modalSaveButton}
+                  style={[styles.modalSaveButton, updatingPassword && styles.modalSaveButtonDisabled]}
                   onPress={handleChangePassword}
+                  disabled={updatingPassword}
                 >
-                  <Text style={styles.modalSaveButtonText}>Update</Text>
+                  {updatingPassword ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text style={[styles.modalSaveButtonText, { marginLeft: 8 }]}>Updating...</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.modalSaveButtonText}>Update</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -811,6 +818,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     fontWeight: "600",
+  },
+  modalSaveButtonDisabled: {
+    backgroundColor: "#9E9E9E",
+    shadowOpacity: 0.1,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelButtonDisabled: {
+    backgroundColor: "#F5F5F5",
+    borderColor: "#E0E0E0",
+  },
+  modalCancelButtonTextDisabled: {
+    color: "#BDBDBD",
+  },
+  passwordInputDisabled: {
+    backgroundColor: "#F5F5F5",
+    color: "#BDBDBD",
   },
 });
 
