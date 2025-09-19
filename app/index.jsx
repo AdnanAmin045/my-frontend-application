@@ -55,18 +55,18 @@ export default function Index() {
 
   const testimonials = [
     {
-      name: "Ayesha K.",
-      text: "Booked laundry and cleaning in one app. Super convenient and reliable!",
+      name: "Ayesha K",
+      text: "Booked laundry and tailoring in one app Super convenient and reliable!",
       avatar: "https://randomuser.me/api/portraits/women/44.jpg",
     },
     {
-      name: "Ali R.",
-      text: "Got my suit stitched and delivered on time. Highly recommended!",
+      name: "Ali R",
+      text: "Got my suit stitched and delivered on time Highly recommended!",
       avatar: "https://randomuser.me/api/portraits/men/32.jpg",
     },
     {
-      name: "Sara M.",
-      text: "The home cleaning service was professional and affordable.",
+      name: "Sara M",
+      text: "The tailoring service was professional and affordable",
       avatar: "https://randomuser.me/api/portraits/women/65.jpg",
     },
   ];
@@ -116,28 +116,26 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E0E7FF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#A5B4FC" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <LinearGradient
-          colors={['#E0E7FF', '#F3E8FF', '#FAF5FF']}
+          colors={['#A5B4FC', '#C4B5FD', '#DDD6FE']}
           style={styles.heroSection}
         >
           <View style={styles.heroContent}>
             <Animated.View style={[styles.logoContainer, { opacity: fadeAnim }]}>
-              <View style={styles.logoWrapper}>
-                <Image source={icon} style={styles.logo} />
-              </View>
+              <Image source={icon} style={styles.logo} />
               <Text style={styles.appName}>TailorWash</Text>
             </Animated.View>
             
             <Animated.View style={[styles.heroTextContainer, { opacity: fadeAnim }]}>
               <Text style={styles.heroTitle}>
-                All Your Daily Needs.{"\n"}
-                <Text style={styles.heroTitleAccent}>One App.</Text>
+                All Your Daily Needs{"\n"}
+                <Text style={styles.heroTitleAccent}>One App</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
-                Book laundry and tailoring services from trusted local professionals.
+                Book laundry and tailoring services from trusted local professionals
               </Text>
             </Animated.View>
 
@@ -166,7 +164,7 @@ export default function Index() {
                       style={styles.buttonGradient}
                     >
                       <Ionicons name="grid-outline" size={20} color="#8B5CF6" />
-                      <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+                      <Text style={styles.primaryButtonText}>Dashboard</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -188,7 +186,7 @@ export default function Index() {
                       style={styles.buttonGradient}
                     >
                       <Ionicons name="person-add-outline" size={20} color="#8B5CF6" />
-                      <Text style={styles.primaryButtonText}>Get Started</Text>
+                      <Text style={styles.primaryButtonText}>Signup</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -385,24 +383,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
   },
-  logoWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
   logo: {
-    width: 50,
-    height: 50,
+    width: 100,
+    height: 100,
     borderRadius: 12,
+    marginBottom: 12,
   },
   appName: {
     fontSize: 28,
@@ -423,7 +408,7 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   heroTitleAccent: {
-    color: "#fbbf24",
+    color: "#FFFFFF",
   },
   heroSubtitle: {
     fontSize: 16,

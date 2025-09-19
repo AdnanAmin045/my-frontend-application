@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { ProfileUploadService } from '../../utils/profileUpload';
 
 export default function UserProfile() {
   const [user, setUser] = useState(null);
@@ -26,6 +27,9 @@ export default function UserProfile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [username, setUsername] = useState('');
+  
+  // Initialize profile upload service
+  const profileUploadService = new ProfileUploadService();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -90,7 +94,7 @@ export default function UserProfile() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        await updateProfilePicture(result.assets[0]);
+        await uploadProfilePicture(result.assets[0].uri);
       }
     } catch (error) {
       console.error("Image picker error:", error);
@@ -98,76 +102,26 @@ export default function UserProfile() {
     }
   };
 
-  const updateProfilePicture = async (imageAsset) => {
-    setUpdatingPic(true);
+  const uploadProfilePicture = async (imageUri) => {
     try {
-      const userData = await AsyncStorage.getItem("user");
-      const parsedUser = JSON.parse(userData);
-      const token = parsedUser.accessToken;
-
-      const formData = new FormData();
-      formData.append('profilePic', {
-        uri: imageAsset.uri,
-        type: 'image/jpeg',
-        name: 'profilePic.jpg',
-      });
-
-      const response = await axios.put(`${API_URL}/users/profile-pic`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
+      await profileUploadService.uploadProfilePicture(
+        imageUri,
+        'customer',
+        // Success callback
+        (data) => {
+          setUser(data);
+          Alert.alert("Success", "Profile picture updated successfully!");
         },
-      });
-
-      if (response.status === 200) {
-        setUser(response.data.data);
-        Alert.alert("Success", "Profile picture updated successfully!");
-      }
+        // Error callback
+        (error) => {
+          Alert.alert("Error", `Failed to update profile picture: ${error}`);
+        }
+      );
     } catch (error) {
-      console.error("Error updating profile picture:", error);
-      Alert.alert("Error", "Failed to update profile picture");
-    } finally {
-      setUpdatingPic(false);
+      Alert.alert("Error", "Failed to upload profile picture. Please try again.");
     }
   };
 
-  const removeProfilePicture = async () => {
-    Alert.alert(
-      "Remove Profile Picture",
-      "Are you sure you want to remove your profile picture?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            setUpdatingPic(true);
-            try {
-              const userData = await AsyncStorage.getItem("user");
-              const parsedUser = JSON.parse(userData);
-              const token = parsedUser.accessToken;
-
-              const response = await axios.delete(`${API_URL}/users/profile-pic`, {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-
-              if (response.status === 200) {
-                setUser(response.data.data);
-                Alert.alert("Success", "Profile picture removed successfully!");
-              }
-            } catch (error) {
-              console.error("Error removing profile picture:", error);
-              Alert.alert("Error", "Failed to remove profile picture");
-            } finally {
-              setUpdatingPic(false);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const updateUsername = async () => {
     if (!username.trim()) {
@@ -382,32 +336,6 @@ export default function UserProfile() {
             </View>           
           </View>
 
-          {/* Profile Picture Actions */}
-          <View style={styles.infoCard}>
-            <Text style={styles.cardTitle}>Profile Picture</Text>
-            
-            <View style={styles.profilePicActions}>
-              <TouchableOpacity 
-                style={styles.actionButton} 
-                onPress={pickImage}
-                disabled={updatingPic}
-              >
-                <MaterialIcons name="edit" size={18} color="#4A90E2" />
-                <Text style={styles.actionButtonText}>Change Photo</Text>
-              </TouchableOpacity>
-              
-              {user.profilePic && (
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.removeButton]} 
-                  onPress={removeProfilePicture}
-                  disabled={updatingPic}
-                >
-                  <MaterialIcons name="delete-outline" size={18} color="#FF6B6B" />
-                  <Text style={[styles.actionButtonText, styles.removeButtonText]}>Remove</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
         
         </View>
       </ScrollView>
@@ -587,37 +515,46 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
   },
-  actionButton: {
-    flexDirection: 'row',
+  profilePicContainer: {
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
-    minWidth: 120,
+    marginTop: 16,
+  },
+  profilePicTouchable: {
+    position: 'relative',
+  },
+  profilePicWrapper: {
+    position: 'relative',
+  },
+  profilePicImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#E5E7EB',
+  },
+  defaultProfilePic: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#E5E7EB',
+    position: 'relative',
   },
-  removeButton: {
-    backgroundColor: '#fff5f5',
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  actionButtonText: {
-    marginLeft: 6,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4A90E2',
-  },
-  removeButtonText: {
-    color: '#FF6B6B',
+  profilePicBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#4A90E2',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   content: {
     marginTop: 20,
@@ -705,11 +642,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 4,
     fontStyle: 'italic',
-  },
-  profilePicActions: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
   },
   statsCard: {
     backgroundColor: '#fff',

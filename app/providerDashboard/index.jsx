@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { ProfileUploadService } from '../../utils/profileUpload';
 
 export default function ProviderProfile() {
   const [provider, setProvider] = useState(null);
@@ -27,6 +28,9 @@ export default function ProviderProfile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [updatingPic, setUpdatingPic] = useState(false);
+  
+  // Initialize profile upload service
+  const profileUploadService = new ProfileUploadService();
   
   // Form data
   const [formData, setFormData] = useState({
@@ -107,44 +111,30 @@ export default function ProviderProfile() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        await updateProfilePicture(result.assets[0]);
+        await uploadProfilePicture(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Image picker error:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
-  const updateProfilePicture = async (imageAsset) => {
-    setUpdatingPic(true);
+  const uploadProfilePicture = async (imageUri) => {
     try {
-      const userData = await AsyncStorage.getItem("user");
-      const parsedUser = JSON.parse(userData);
-      const token = parsedUser.accessToken;
-
-      const formData = new FormData();
-      formData.append('profilePic', {
-        uri: imageAsset.uri,
-        type: 'image/jpeg',
-        name: 'profilePic.jpg',
-      });
-
-      const response = await axios.put(`${API_URL}/users/provider/profile-pic`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
+      await profileUploadService.uploadProfilePicture(
+        imageUri,
+        'provider',
+        // Success callback
+        (data) => {
+          setProvider(data);
+          Alert.alert("Success", "Profile picture updated successfully!");
         },
-      });
-
-      if (response.status === 200) {
-        setProvider(response.data.data);
-        Alert.alert("Success", "Profile picture updated successfully!");
-      }
+        // Error callback
+        (error) => {
+          Alert.alert("Error", `Failed to update profile picture: ${error}`);
+        }
+      );
     } catch (error) {
-      console.error("Error updating profile picture:", error);
-      Alert.alert("Error", "Failed to update profile picture");
-    } finally {
-      setUpdatingPic(false);
+      Alert.alert("Error", "Failed to upload profile picture. Please try again.");
     }
   };
 
@@ -175,7 +165,6 @@ export default function ProviderProfile() {
                 Alert.alert("Success", "Profile picture removed successfully!");
               }
             } catch (error) {
-              console.error("Error removing profile picture:", error);
               Alert.alert("Error", "Failed to remove profile picture");
             } finally {
               setUpdatingPic(false);
@@ -210,7 +199,6 @@ export default function ProviderProfile() {
         Alert.alert("Success", "Profile updated successfully!");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
       if (error.response?.data?.message) {
         Alert.alert("Error", error.response.data.message);
       } else {
