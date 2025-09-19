@@ -59,7 +59,7 @@ const ServicesScreen = () => {
       setServices(response.data.data);
       setFilteredServices(response.data.data);
     } catch (error) {
-      console.error("Error fetching services", error);
+("Error fetching services", error);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ const ServicesScreen = () => {
       setSuccessMessage("Service added successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error("Error adding service", error);
+("Error adding service", error);
       Alert.alert("Error", "Failed to add service");
     } finally {
       setLoadingAction(false);
@@ -129,7 +129,7 @@ const ServicesScreen = () => {
       setSuccessMessage("Service updated successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error("Error updating service", error);
+("Error updating service", error);
       Alert.alert("Error", "Failed to update service");
     } finally {
       setLoadingAction(false);
@@ -152,7 +152,7 @@ const ServicesScreen = () => {
       setSuccessMessage("Service deleted successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error("Error deleting service", error);
+("Error deleting service", error);
       Alert.alert("Error", "Failed to delete service");
     } finally {
       setLoadingAction(false);

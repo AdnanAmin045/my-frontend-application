@@ -58,7 +58,7 @@ export default function UserSidebar() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#111827",
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopWidth: 1,
     borderTopColor: "#374151",
     shadowColor: "#000",

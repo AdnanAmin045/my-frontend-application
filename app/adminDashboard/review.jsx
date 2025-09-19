@@ -61,7 +61,7 @@ const ServiceProvidersList = () => {
       setProviders(providersData);
       setFilteredProviders(providersData);
     } catch (err) {
-      console.error(err);
+(err);
       alert("Failed to load service providers");
     } finally {
       setLoading(false);
@@ -78,7 +78,7 @@ const ServiceProvidersList = () => {
       );
       setReviews(response.data.reviews || response.data || []);
     } catch (err) {
-      console.error(err);
+(err);
       alert("Failed to load reviews");
     } finally {
       setReviewsLoading(false);

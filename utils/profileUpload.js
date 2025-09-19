@@ -23,8 +23,6 @@ export class ProfileUploadService {
    * @param {function} onProgress - Progress callback (optional)
    */
   async uploadProfilePicture(imageUri, userType, onSuccess, onError, onProgress = null) {
-    console.log(`🔍 Starting ${userType} profile picture upload...`);
-    console.log(`🔍 Image URI: ${imageUri}`);
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
@@ -68,7 +66,6 @@ export class ProfileUploadService {
         throw new Error('No authentication token found');
       }
 
-      console.log(`🔍 User token available: ${!!token}`);
 
       // Create FormData
       const formData = new FormData();
@@ -78,7 +75,6 @@ export class ProfileUploadService {
         name: `profile_${userType}_${Date.now()}.jpg`,
       });
 
-      console.log(`🔍 FormData created, sending request to ${userType} endpoint...`);
 
       // Determine endpoint based on user type
       const endpoint = this._getEndpoint(userType);
@@ -99,12 +95,9 @@ export class ProfileUploadService {
         } : undefined,
       };
 
-      console.log(`🔍 Sending request to: ${config.url}`);
 
       const response = await axios(config);
 
-      console.log(`🔍 Upload response status: ${response.status}`);
-      console.log(`🔍 Upload response data:`, response.data);
 
       if (response.status === 200 && response.data.success) {
         // Update stored user data
@@ -113,7 +106,6 @@ export class ProfileUploadService {
           [userType === 'customer' ? 'userData' : `${userType}Data`]: response.data.data,
         };
         await AsyncStorage.setItem('user', JSON.stringify(updatedUserData));
-        console.log(`✅ User data updated in AsyncStorage`);
 
         return {
           success: true,
@@ -185,7 +177,6 @@ export class ProfileUploadService {
    */
   async removeProfilePicture(userType, onSuccess, onError) {
     try {
-      console.log(`🔍 Removing ${userType} profile picture...`);
       
       const userData = await AsyncStorage.getItem('user');
       if (!userData) {
@@ -216,7 +207,6 @@ export class ProfileUploadService {
         };
         await AsyncStorage.setItem('user', JSON.stringify(updatedUserData));
         
-        console.log(`✅ ${userType} profile picture removed successfully`);
         onSuccess(response.data.data);
       } else {
         throw new Error(response.data.message || 'Remove failed');

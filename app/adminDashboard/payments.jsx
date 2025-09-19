@@ -62,7 +62,7 @@ const AdminPayments = () => {
       });
 
       const providersData = providersResponse.data.data;
-      console.log("🔍 Providers data:", providersData); // Debug logging
+("🔍 Providers data:", providersData); // Debug logging
       setProviders(providersData);
       setAllProviders(providersData); // Store all providers for search
       setFilteredProviders(providersData); // Initially show all providers
@@ -70,7 +70,7 @@ const AdminPayments = () => {
       setSummary(historyResponse.data.data.summary);
 
     } catch (error) {
-      console.error("Error fetching payment data:", error);
+("Error fetching payment data:", error);
       Alert.alert("Error", "Failed to load payment data");
     } finally {
       setLoading(false);
@@ -104,6 +104,18 @@ const AdminPayments = () => {
   const handleMakePayment = (provider) => {
     if (provider.balance <= 0) {
       Alert.alert("No Pending Payment", "This provider has no pending payment amount.");
+      return;
+    }
+    
+    // Check if provider has payment method configured
+    if (!provider.paymentMethod || !provider.paymentDetails) {
+      Alert.alert(
+        "Payment Method Required", 
+        "This provider has not configured their payment method yet. Please ask them to add their payment details in their dashboard before making a payment.",
+        [
+          { text: "OK", style: "default" }
+        ]
+      );
       return;
     }
     
@@ -142,9 +154,9 @@ const AdminPayments = () => {
         notes: paymentForm.notes
       };
 
-      console.log("🔍 Sending payment data:", paymentData);
-      console.log("🔍 API URL:", `${API_URL}/payments/admin/make-payment`);
-      console.log("🔍 Token available:", !!token);
+("🔍 Sending payment data:", paymentData);
+("🔍 API URL:", `${API_URL}/payments/admin/make-payment`);
+("🔍 Token available:", !!token);
 
       await axios.post(`${API_URL}/payments/admin/make-payment`, paymentData, {
         headers: { Authorization: `Bearer ${token}` },
@@ -154,9 +166,9 @@ const AdminPayments = () => {
       setPaymentModalVisible(false);
       fetchPaymentData(); // Refresh data
     } catch (error) {
-      console.error("❌ Error making payment:", error);
-      console.error("❌ Error response:", error.response?.data);
-      console.error("❌ Error status:", error.response?.status);
+("❌ Error making payment:", error);
+("❌ Error response:", error.response?.data);
+("❌ Error status:", error.response?.status);
       const errorMessage = error.response?.data?.message || error.message || "Failed to make payment";
       Alert.alert("Error", errorMessage);
     } finally {
@@ -267,18 +279,36 @@ const AdminPayments = () => {
             </View>
           ) : (
             filteredProviders.map((provider, index) => {
-              console.log(`🔍 Provider ${provider.username} balance:`, provider.balance); // Debug logging
+(`🔍 Provider ${provider.username} balance:`, provider.balance); // Debug logging
               return (
               <View key={index} style={styles.providerCard}>
                 <View style={styles.providerHeader}>
                   <View style={styles.providerInfo}>
                     <Text style={styles.providerName}>{provider.username}</Text>
                     <Text style={styles.providerEmail}>{provider.email}</Text>
+                    {/* Payment Method Status Indicator */}
+                    <View style={styles.paymentMethodStatus}>
+                      {provider.paymentMethod && provider.paymentDetails ? (
+                        <View style={styles.paymentMethodConfigured}>
+                          <MaterialIcons name="check-circle" size={16} color="#27AE60" />
+                          <Text style={styles.paymentMethodText}>
+                            {getPaymentMethodName(provider.paymentMethod)} configured
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.paymentMethodNotConfigured}>
+                          <MaterialIcons name="warning" size={16} color="#E74C3C" />
+                          <Text style={styles.paymentMethodText}>
+                            Payment method not configured
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                   <FontAwesome5 
                     name={getPaymentMethodIcon(provider.paymentMethod)} 
                     size={20} 
-                    color="#8A63D2" 
+                    color={provider.paymentMethod ? "#8A63D2" : "#BDC3C7"} 
                   />
                 </View>
 
@@ -302,15 +332,15 @@ const AdminPayments = () => {
                   </View>
                 </View>
 
-                {/* Always show payment button for testing */}
+                {/* Payment button - disabled if no payment method or no balance */}
                 <TouchableOpacity
                   style={[
                     styles.payButton, 
-                    provider.balance <= 0 && styles.payButtonDisabled,
+                    (provider.balance <= 0 || !provider.paymentMethod || !provider.paymentDetails) && styles.payButtonDisabled,
                     isProcessingPayment && selectedProvider?._id === provider._id && styles.payButtonProcessing
                   ]}
                   onPress={() => handleMakePayment(provider)}
-                  disabled={isProcessingPayment}
+                  disabled={isProcessingPayment || !provider.paymentMethod || !provider.paymentDetails}
                 >
                   {isProcessingPayment && selectedProvider?._id === provider._id ? (
                     <>
@@ -984,6 +1014,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: '600',
+  },
+  paymentMethodStatus: {
+    marginTop: 4,
+  },
+  paymentMethodConfigured: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paymentMethodNotConfigured: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paymentMethodText: {
+    fontSize: 12,
+    marginLeft: 4,
+    color: '#6B7280',
   },
 });
 

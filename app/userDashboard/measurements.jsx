@@ -69,7 +69,7 @@ const MeasurementDisplay = () => {
     } catch (err) {
       setError("Error connecting to server");
       Alert.alert("Error", "Could not connect to server");
-      console.error("Error fetching measurements:", err);
+("Error fetching measurements:", err);
     } finally {
       setLoading(false);
     }

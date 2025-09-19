@@ -76,7 +76,6 @@ export default function ProviderProfile() {
         }
         setError(null);
       } catch (error) {
-        console.log("Error fetching provider profile:", error);
         setError("Failed to load profile data");
       } finally {
         setLoading(false);

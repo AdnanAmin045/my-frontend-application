@@ -76,7 +76,6 @@ const AdminDashboard = () => {
         });
       }
     } catch (error) {
-      console.error("Error fetching admin data:", error);
       Alert.alert("Error", "Failed to load admin data");
     } finally {
       setLoading(false);
@@ -110,7 +109,6 @@ const AdminDashboard = () => {
       setEditing(false);
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
-      console.error("Error updating profile:", error);
       Alert.alert("Error", "Failed to update profile");
     }
   };
@@ -199,7 +197,6 @@ const AdminDashboard = () => {
 
   const pickImage = async () => {
     try {
-      console.log("🔍 Starting image picker...");
       
       // Request permissions first
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -223,13 +220,8 @@ const AdminDashboard = () => {
         quality: 0.8,
       });
 
-      console.log("🔍 Image picker result:", result);
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        console.log("🔍 Selected image URI:", result.assets[0].uri);
         await uploadProfilePicture(result.assets[0].uri);
-      } else {
-        console.log("🔍 Image picker was canceled or no assets");
       }
     } catch (error) {
       Alert.alert("Error", "Failed to pick image. Please try again.");
@@ -252,7 +244,6 @@ const AdminDashboard = () => {
         },
         // Progress callback (optional)
         (progress) => {
-          console.log(`📤 Upload progress: ${progress}%`);
         }
       );
     } catch (error) {

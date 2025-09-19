@@ -105,14 +105,12 @@ const Explore = () => {
 
       const params = { lat: latitude, lng: longitude };
 
-      console.log("🔍 Fetching all providers with params:", params);
 
       const response = await axios.get(`${API_URL}/offers/nearby`, {
         params,
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("📦 API Response:", response.data);
 
       // ✅ Updated grouping according to API response
       const grouped = response.data.groupedOffers.map((group) => ({
@@ -120,14 +118,12 @@ const Explore = () => {
         offers: group.offers,
       }));
 
-      console.log("🎯 All providers loaded:", grouped.length);
 
       // Store all providers for local search
       setAllProviders(grouped);
       setGroupedOffers(grouped);
       setErrors({});
     } catch (err) {
-      console.error("❌ Error fetching providers:", err);
       setErrors({ general: "Failed to load providers." });
     } finally {
       setLoading(false);
@@ -148,7 +144,6 @@ const Explore = () => {
     }
 
     const searchTerm = query.toLowerCase().trim();
-    console.log("🔍 Performing local search for:", searchTerm);
 
     const filteredProviders = allProviders.filter((provider) => {
       const username = provider.serviceProvider.username?.toLowerCase() || "";
@@ -162,7 +157,6 @@ const Explore = () => {
       );
     });
 
-    console.log(`🔍 Found ${filteredProviders.length} providers matching "${searchTerm}"`);
     setGroupedOffers(filteredProviders);
   };
 
@@ -170,7 +164,6 @@ const Explore = () => {
   const handleSearch = () => {
     if (searchLoading) return;
     
-    console.log("🔍 Frontend search triggered with query:", searchQuery);
     setSearchLoading(true);
     performLocalSearch(searchQuery);
     setSearchLoading(false);
@@ -273,7 +266,6 @@ const Explore = () => {
       setOrderModalVisible(false);
       setPaymentModalVisible(true);
     } catch (err) {
-      console.error(err);
       setErrors({ general: "Failed to validate order. Please try again." });
     }
   };
@@ -327,7 +319,6 @@ const Explore = () => {
         return;
       }
 
-      console.log("🔍 Sending order creation request...");
       const orderResponse = await axios.post(
         `${API_URL}/orders/createOrder`,
         {
@@ -348,14 +339,10 @@ const Explore = () => {
           timeout: 30000 // 30 second timeout
         }
       );
-      console.log("✅ Order creation response:", orderResponse.data);
 
       Alert.alert("Success", "Payment successful and order placed!");
       handleCancel();
     } catch (err) {
-      console.error("Payment error:", err.response?.data || err.message);
-      console.error("Error type:", err.code);
-      console.error("Error message:", err.message);
       
       let errorMessage = "Payment failed. Please try again.";
       
@@ -404,13 +391,6 @@ const Explore = () => {
     );
   }
 
-  // Debug: Show current state
-  console.log("🔍 Current state:", { 
-    loading, 
-    groupedOffers: groupedOffers.length, 
-    errors,
-    searchQuery 
-  });
 
   return (
     <View style={styles.container}>

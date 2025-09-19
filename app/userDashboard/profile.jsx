@@ -59,7 +59,6 @@ export default function UserProfile() {
         setUsername(response.data.data.username);
         setError(null);
       } catch (error) {
-        console.log("Error fetching user profile:", error);
         setError("Failed to load profile data");
       } finally {
         setLoading(false);
@@ -97,7 +96,6 @@ export default function UserProfile() {
         await uploadProfilePicture(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Image picker error:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
@@ -149,7 +147,6 @@ export default function UserProfile() {
         Alert.alert("Success", "Username updated successfully!");
       }
     } catch (error) {
-      console.error("Error updating username:", error);
       if (error.response?.data?.message) {
         Alert.alert("Error", error.response.data.message);
       } else {

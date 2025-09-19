@@ -160,7 +160,7 @@ const SignUpProvider = () => {
         setProfilePic(result.assets[0]);
       }
     } catch (error) {
-      console.error("Image picker error:", error);
+("Image picker error:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
@@ -202,7 +202,7 @@ const SignUpProvider = () => {
         Alert.alert("Error", "Failed to register. Please try again.");
       }
     } catch (error) {
-      console.error("Provider registration error:", error);
+("Provider registration error:", error);
       Alert.alert("Error", "Something went wrong. Please try again!");
     } finally {
       setLoading(false);

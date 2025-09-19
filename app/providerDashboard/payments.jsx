@@ -65,14 +65,12 @@ const ProviderPayments = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("Payment method response:", methodResponse.data);
       setPaymentMethod(methodResponse.data.data);
       setPaymentHistory(historyResponse.data.data.payments);
       setAdminPaymentHistory(adminHistoryResponse.data.data.payments);
       setSummary(historyResponse.data.data.summary);
 
     } catch (error) {
-      console.error("Error fetching payment data:", error);
       Alert.alert("Error", "Failed to load payment data");
     } finally {
       setLoading(false);
@@ -90,7 +88,6 @@ const ProviderPayments = () => {
   }, [fetchPaymentData]);
 
   const handleEditMethod = () => {
-    console.log("🔍 Opening edit modal with current paymentMethod:", paymentMethod);
     
     const newFormData = {
       paymentMethod: paymentMethod?.paymentMethod || "easypaisa",
@@ -99,7 +96,6 @@ const ProviderPayments = () => {
       bankName: paymentMethod?.paymentDetails?.bankName || ""
     };
     
-    console.log("🔍 Setting form data to:", newFormData);
     setFormData(newFormData);
     setEditModalVisible(true);
   };
@@ -111,7 +107,6 @@ const ProviderPayments = () => {
       const parsedUser = JSON.parse(userData);
       const token = parsedUser.accessToken;
 
-      console.log("Saving payment method with data:", formData);
 
       // Prepare the data in the format expected by backend
       const requestData = {
@@ -123,19 +118,19 @@ const ProviderPayments = () => {
         }
       };
 
-      console.log("Request data being sent:", requestData);
+("Request data being sent:", requestData);
 
       const response = await axios.put(`${API_URL}/payments/provider/method`, requestData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("Payment method save response:", response.data);
+("Payment method save response:", response.data);
       setPaymentMethod(response.data.data);
       setEditModalVisible(false);
       Alert.alert("Success", "Payment method updated successfully!");
     } catch (error) {
-      console.error("Error updating payment method:", error);
-      console.error("Error response:", error.response?.data);
+("Error updating payment method:", error);
+("Error response:", error.response?.data);
       Alert.alert("Error", "Failed to update payment method");
     } finally {
       setSaving(false);

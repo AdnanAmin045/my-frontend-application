@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
         setToken(parsedUser.accessToken);
       }
     } catch (error) {
-      console.error('Error checking login status:', error);
+('Error checking login status:', error);
     } finally {
       setLoading(false);
     }

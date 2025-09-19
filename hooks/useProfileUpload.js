@@ -39,13 +39,13 @@ export const useProfileUpload = (userType) => {
         // Progress callback
         (progress) => {
           setUploadProgress(progress);
-          console.log(`📤 Upload progress: ${progress}%`);
+(`📤 Upload progress: ${progress}%`);
         }
       );
     } catch (error) {
       setUploading(false);
       setUploadProgress(0);
-      console.error("❌ Upload hook error:", error);
+("❌ Upload hook error:", error);
       Alert.alert("Error", "Failed to upload profile picture. Please try again.");
     }
   };
@@ -83,7 +83,7 @@ export const useProfileUpload = (userType) => {
               );
             } catch (error) {
               setUploading(false);
-              console.error("❌ Remove profile picture error:", error);
+("❌ Remove profile picture error:", error);
               Alert.alert("Error", "Failed to remove profile picture");
             }
           },

@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 export const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
-  console.log("Required: ",user)
+("Required: ",user)
   useEffect(() => {
     if (!loading) {
       if (!user) {

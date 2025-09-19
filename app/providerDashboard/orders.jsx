@@ -101,7 +101,6 @@ const OrdersManager = () => {
         }))
       );
     } catch (err) {
-      console.error(err);
       alert("Failed to load orders");
     } finally {
       setLoading(false);
@@ -126,23 +125,18 @@ const OrdersManager = () => {
       alert("Status updated successfully");
       fetchOrders();
     } catch (err) {
-      console.error(err);
       alert("Failed to update status");
     }
   };
 
   const saveMeasurement = async (data) => {
-    console.log("Save measurement called with data:", data);
-    console.log("Selected order:", selectedOrder);
     
     setSavingMeasurement(true);
     
     // Validate the data before sending
     try {
       const validatedData = measurementSchema.parse(data);
-      console.log("Validation passed, validated data:", validatedData);
     } catch (validationError) {
-      console.error("Validation error:", validationError);
       alert("Please check your input values. Some fields have invalid format.");
       setSavingMeasurement(false);
       return;
@@ -152,8 +146,6 @@ const OrdersManager = () => {
       const user = await AsyncStorage.getItem("user");
       const token = user ? JSON.parse(user).accessToken : null;
       
-      console.log("Token available:", !!token);
-      console.log("Order tracking ID:", selectedOrder?.orderTrackingId);
 
       if (!selectedOrder?.orderTrackingId) {
         alert("No order selected");
@@ -167,14 +159,11 @@ const OrdersManager = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("Save measurement response:", response.data);
       alert("Measurement saved successfully");
       setMeasurementModal(false);
       reset();
       fetchOrders();
     } catch (err) {
-      console.error("Error saving measurement:", err);
-      console.error("Error response:", err.response?.data);
       alert(`Failed to save measurement: ${err.response?.data?.message || err.message}`);
     } finally {
       setSavingMeasurement(false);
@@ -210,7 +199,6 @@ const OrdersManager = () => {
           currentProviderId = tokenPayload._id;
         }
       } catch (tokenError) {
-        console.error("Error decoding token:", tokenError);
       }
     }
     
@@ -219,10 +207,6 @@ const OrdersManager = () => {
       currentProviderId = parsedUser?._id || parsedUser?.id || parsedUser?.userId;
     }
 
-    console.log("Order data:", order);
-    console.log("Current provider ID:", currentProviderId);
-    console.log("Parsed user data:", parsedUser);
-    console.log("User measurements:", order.user?.measurements);
 
     // Check if order has measurements data
     if (order.user && order.user.measurements && Array.isArray(order.user.measurements) && order.user.measurements.length > 0) {
@@ -239,10 +223,8 @@ const OrdersManager = () => {
       // If no specific provider measurement found, use the first available measurement
       if (!existingMeasurement && order.user.measurements.length > 0) {
         existingMeasurement = order.user.measurements[0];
-        console.log("Using first available measurement as fallback");
       }
 
-      console.log("Existing measurement found:", existingMeasurement);
 
       if (existingMeasurement) {
         // Fill form values with existing measurement data
@@ -253,17 +235,13 @@ const OrdersManager = () => {
             setValue(key, existingMeasurement[key] ?? "");
           }
         });
-        console.log("Form values set with existing measurement data");
       } else {
         reset(); // Clear form if no measurement found
-        console.log("No measurement data available, form reset");
       }
     } else {
       reset(); // Clear form if no measurements found
-      console.log("No measurements found for this order, form reset");
     }
   } catch (error) {
-    console.error("Error loading measurement data:", error);
     reset(); // Clear form on error
   }
 

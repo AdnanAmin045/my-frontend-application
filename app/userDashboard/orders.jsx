@@ -115,7 +115,7 @@ const OrderHistory = () => {
       });
       setOrders(response.data.data || []);
     } catch (err) {
-      console.error(err);
+(err);
       setError("Failed to load orders");
     } finally {
       setLoading(false);
@@ -182,7 +182,7 @@ const OrderHistory = () => {
         closeReviewModal();
       }
     } catch (err) {
-      console.error(err);
+(err);
       Alert.alert("Error", "Failed to submit review. Please try again.");
     } finally {
       setSubmittingReview(false);
@@ -221,7 +221,7 @@ const OrderHistory = () => {
       }
 
     } catch (err) {
-      console.error(err);
+(err);
       Alert.alert("Error", "Failed to save measurements. Please try again.");
     } finally {
       setSubmittingMeasurement(false);

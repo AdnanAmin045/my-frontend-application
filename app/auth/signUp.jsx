@@ -87,7 +87,7 @@ const Signup = () => {
         setProfilePic(result.assets[0]);
       }
     } catch (error) {
-      console.error("Image picker error:", error);
+("Image picker error:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
@@ -95,7 +95,7 @@ const Signup = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      console.log("Signup URL: ", `${API_URL}/users/register`);
+("Signup URL: ", `${API_URL}/users/register`);
       
       const formData = new FormData();
       formData.append('username', data.username);
@@ -123,7 +123,7 @@ const Signup = () => {
         Alert.alert("Error", "Signup failed! Try again.");
       }
     } catch (error) {
-      console.error("Signup error:", error);
+("Signup error:", error);
       Alert.alert(
         "Network Error",
         "Something went wrong. Please check your connection and try again."

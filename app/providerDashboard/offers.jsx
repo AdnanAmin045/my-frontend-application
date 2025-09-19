@@ -85,7 +85,7 @@ export default function OffersScreen() {
       );
       setServices(response.data.services || []);
     } catch (err) {
-      console.log(
+(
         "Error fetching services:",
         err.response?.data || err.message
       );
@@ -115,7 +115,7 @@ export default function OffersScreen() {
         : [];
       setOffers(offersData);
     } catch (err) {
-      console.log("Error fetching offers:", err.response?.data || err.message);
+("Error fetching offers:", err.response?.data || err.message);
       Alert.alert("Error", "Failed to fetch offers");
     } finally {
       setLoading(false);
@@ -139,7 +139,7 @@ export default function OffersScreen() {
         setProfileActive(response.data.data.isActive);
       }
     } catch (err) {
-      console.log(
+(
         "Error fetching profile status:",
         err.response?.data || err.message
       );
@@ -169,7 +169,7 @@ export default function OffersScreen() {
         setProfileActive(!profileActive);
       }
     } catch (error) {
-      console.log(error.response?.data || error.message);
+(error.response?.data || error.message);
       Alert.alert("Error", "Failed to update profile status");
     } finally {
       setProfileLoading(false);
@@ -194,7 +194,7 @@ export default function OffersScreen() {
       );
       setProfileActive(res.data.status);
     } catch (error) {
-      console.error("Error fetching profile status:", error);
+("Error fetching profile status:", error);
     }
   };
 
@@ -226,7 +226,7 @@ export default function OffersScreen() {
         fetchOffers();
       }
     } catch (error) {
-      console.log(
+(
         "Error toggling offer:",
         error.response?.data || error.message
       );
@@ -302,7 +302,7 @@ const addService = () => {
         setVisible(false);
       }
     } catch (err) {
-      console.log("Error creating offer:", err.response?.data || err.message);
+("Error creating offer:", err.response?.data || err.message);
       Alert.alert("Error", "Failed to create offer");
     } finally {
       setModalLoading(false);
