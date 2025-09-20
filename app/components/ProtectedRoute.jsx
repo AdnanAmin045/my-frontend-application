@@ -1,79 +1,189 @@
 // components/ProtectedRoute.jsx
-import { useAuth } from '../context/authContext';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, View, Text } from 'react-native';
-import { useEffect } from 'react';
+import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Role-based Protected Route Component
 export const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user, loading } = useAuth();
   const router = useRouter();
-("Required: ",user)
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setUserRole(parsedUser.role);
+      } else {
+        setUser(null);
+        setUserRole(null);
+      }
+    } catch (error) {
+      console.log('Error checking auth status:', error);
+      setUser(null);
+      setUserRole(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading) {
-      if (!user) {
+      // If no user is logged in, redirect to login
+      if (!user || !userRole) {
         router.replace('/auth/login');
         return;
       }
       
-      // Check if user has the required role
-      if (requiredRole && user.role !== requiredRole) {
-        // Redirect based on user's actual role
-        if (user.role === 'Admin') {
-          router.replace('/adminDashboard');
-        } else if (user.role === 'provider') {
-          router.replace('/providerDashboard');
-        } else {
-          router.replace('/userDashboard');
-        }
+      // If user has a role but it doesn't match the required role, redirect to appropriate dashboard
+      if (requiredRole && userRole !== requiredRole) {
+        redirectToUserDashboard(userRole);
       }
     }
-  }, [user, loading, requiredRole]);
+  }, [user, userRole, loading, requiredRole]);
 
+  // Function to redirect users to their appropriate dashboard based on role
+  const redirectToUserDashboard = (role) => {
+    switch (role) {
+      case 'Admin':
+        router.replace('/adminDashboard');
+        break;
+      case 'provider':
+        router.replace('/providerDashboard');
+        break;
+      case 'customer':
+        router.replace('/userDashboard');
+        break;
+      default:
+        router.replace('/auth/login');
+    }
+  };
+
+  // Show loading spinner while checking authentication
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8A63D2" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
-  if (!user || (requiredRole && user.role !== requiredRole)) {
-    return null; // Will redirect in useEffect
+  // If no user or role doesn't match, don't render anything (redirect will happen)
+  if (!user || !userRole || (requiredRole && userRole !== requiredRole)) {
+    return null;
   }
 
   return children;
 };
 
+// Public Route Component - blocks access to auth routes when user is logged in
 export const PublicRoute = ({ children }) => {
-  const { user, loading } = useAuth();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    if (!loading && user) {
-      // Redirect based on user role
-      if (user.role === 'Admin') {
-        router.replace('/adminDashboard');
-      } else if (user.role === 'provider') {
-        router.replace('/providerDashboard');
-      } else {
-        router.replace('/userDashboard');
-      }
-    }
-  }, [user, loading]);
+    checkAuthStatus();
+  }, []);
 
+  const checkAuthStatus = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setUserRole(parsedUser.role);
+      } else {
+        setUser(null);
+        setUserRole(null);
+      }
+    } catch (error) {
+      console.log('Error checking auth status:', error);
+      setUser(null);
+      setUserRole(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading && user && userRole) {
+      // If user is logged in, redirect to appropriate dashboard
+      redirectToUserDashboard(userRole);
+    }
+  }, [user, userRole, loading]);
+
+  // Function to redirect users to their appropriate dashboard based on role
+  const redirectToUserDashboard = (role) => {
+    switch (role) {
+      case 'Admin':
+        router.replace('/adminDashboard');
+        break;
+      case 'provider':
+        router.replace('/providerDashboard');
+        break;
+      case 'customer':
+        router.replace('/userDashboard');
+        break;
+      default:
+        // If role is unknown, redirect to login
+        router.replace('/auth/login');
+    }
+  };
+
+  // Show loading spinner while checking authentication
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8A63D2" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
-  if (user) {
-    return null; // Will redirect in useEffect
+  // If user is logged in, don't render auth pages (redirect will happen)
+  if (user && userRole) {
+    return null;
   }
 
   return children;
 };
+
+// Role-specific route components for cleaner usage
+export const AdminRoute = ({ children }) => {
+  return <ProtectedRoute requiredRole="Admin">{children}</ProtectedRoute>;
+};
+
+export const ProviderRoute = ({ children }) => {
+  return <ProtectedRoute requiredRole="provider">{children}</ProtectedRoute>;
+};
+
+export const CustomerRoute = ({ children }) => {
+  return <ProtectedRoute requiredRole="customer">{children}</ProtectedRoute>;
+};
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+});
 
 export default ProtectedRoute;

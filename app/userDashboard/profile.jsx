@@ -333,7 +333,36 @@ export default function UserProfile() {
             </View>           
           </View>
 
-        
+          {/* Contact Information for Inquiry */}
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Contact & Support</Text>
+            
+            <View style={styles.infoItem}>
+              <View style={styles.infoIcon}>
+                <MaterialIcons name="email" size={24} color="#4A90E2" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Email Address</Text>
+                <Text style={styles.infoValue}>tailorwash@gmail.com</Text>
+                <Text style={styles.fieldNote}>For inquiries and support</Text>
+              </View>
+            </View>
+            
+            <View style={styles.separator} />
+            
+            <View style={styles.infoItem}>
+              <View style={styles.infoIcon}>
+                <MaterialIcons name="phone" size={24} color="#4A90E2" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Phone Number</Text>
+                <Text style={styles.infoValue}>03160263282</Text>
+                <Text style={styles.fieldNote}>Contact number for inquiries</Text>
+              </View>
+            </View>
+          </View>
+
+         
         </View>
       </ScrollView>
 

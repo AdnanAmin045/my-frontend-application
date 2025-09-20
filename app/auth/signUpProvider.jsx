@@ -36,8 +36,15 @@ const { width } = Dimensions.get("window");
 const signUpSchema = z.object({
   username: z.string().min(1, "Business Name is required"),
   email: z.string().email("Invalid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  phoneNo: z.string().min(1, "Phone Number is required"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+      "Password must contain at least one letter, one number, and one special character"),
+  phoneNo: z
+    .string()
+    .min(1, "Phone Number is required")
+    .regex(/^\d{11}$/, "Phone number must be exactly 11 digits"),
   currentLocation: z.object({
     type: z.literal("Point"),
     coordinates: z
@@ -260,10 +267,9 @@ const SignUpProvider = () => {
               placeholder="Enter Password"
               secureTextEntry={secureText}
               rightIcon={() => (
-                <IconButton
+                <TextInput.Icon
                   icon={secureText ? "eye-off" : "eye"}
                   onPress={() => setSecureText(!secureText)}
-                  size={22}
                   iconColor="#6B7280"
                 />
               )}
@@ -331,6 +337,11 @@ const SignUpProvider = () => {
 
               <TouchableOpacity style={styles.loginButton} onPress={() => router.push("/auth/login")}>
                 <Text style={styles.loginButtonText}>Login</Text>
+              </TouchableOpacity>
+
+              {/* Go to Home Button */}
+              <TouchableOpacity style={styles.homeButton} onPress={() => router.push("/")}>
+                <Text style={styles.homeButtonText}>Go to Home</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -431,6 +442,8 @@ const styles = StyleSheet.create({
   signUpButtonText: { fontSize: 16, fontWeight: "600", color: "#FFF" },
   loginButton: { width: "100%", borderRadius: 8, borderWidth: 1, borderColor: "#8A63D2", padding: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF" },
   loginButtonText: { fontSize: 16, fontWeight: "600", color: "#8A63D2" },
+  homeButton: { width: "100%", borderRadius: 8, padding: 12, alignItems: "center", justifyContent: "center", backgroundColor: "transparent", marginTop: 8 },
+  homeButtonText: { fontSize: 14, fontWeight: "500", color: "#6B7280" },
 });
 
 export default SignUpProvider;

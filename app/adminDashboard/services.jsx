@@ -36,7 +36,9 @@ const ServicesScreen = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
   // *************** REACT HOOK FORM *****************
@@ -136,7 +138,7 @@ const ServicesScreen = () => {
     }
   };
 
-  const deleteService = async (id) => {
+  const deleteService = async () => {
     try {
       setLoadingAction(true);
       const token = await AsyncStorage.getItem("user");
@@ -145,10 +147,12 @@ const ServicesScreen = () => {
         router.push("/auth/login");
         return;
       }
-      await axios.delete(`${localIp}/services/delete/${id}`, {
+      await axios.delete(`${localIp}/services/delete/${serviceToDelete._id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      setServices((prev) => prev.filter((s) => s._id !== id));
+      setServices((prev) => prev.filter((s) => s._id !== serviceToDelete._id));
+      setDeleteConfirmVisible(false);
+      setServiceToDelete(null);
       setSuccessMessage("Service deleted successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
@@ -157,6 +161,11 @@ const ServicesScreen = () => {
     } finally {
       setLoadingAction(false);
     }
+  };
+
+  const confirmDeleteService = (service) => {
+    setServiceToDelete(service);
+    setDeleteConfirmVisible(true);
   };
 
   // Convert to snake case for display
@@ -235,7 +244,7 @@ const ServicesScreen = () => {
                     <Text style={styles.actionText}>✏️</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
-                    onPress={() => deleteService(item._id)}
+                    onPress={() => confirmDeleteService(item)}
                     disabled={loadingAction}
                   >
                     <Text style={[styles.actionText, { color: "red" }]}>🗑</Text>
@@ -321,6 +330,41 @@ const ServicesScreen = () => {
         </View>
       </Modal>
 
+      {/* Delete Confirmation Modal */}
+      <Modal visible={deleteConfirmVisible} transparent animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Delete Service?</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to delete "{serviceToDelete ? toSnakeCase(serviceToDelete.name || "") : ''}"? This action cannot be undone.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={() => {
+                  setDeleteConfirmVisible(false);
+                  setServiceToDelete(null);
+                }}
+                disabled={loadingAction}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButtonOk, { backgroundColor: "#dc3545" }]}
+                onPress={deleteService}
+                disabled={loadingAction}
+              >
+                {loadingAction ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff" }}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {successMessage !== "" && (
         <View style={styles.successContainer}>
           <Text style={styles.successText}>{successMessage}</Text>
@@ -377,6 +421,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+  modalMessage: { fontSize: 16, color: "#666", marginBottom: 15, textAlign: "center" },
   modalActions: {
     flexDirection: "row",
     justifyContent: "space-between",

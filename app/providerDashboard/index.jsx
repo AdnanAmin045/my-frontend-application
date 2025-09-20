@@ -20,6 +20,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ProfileUploadService } from '../../utils/profileUpload';
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Zod validation schema
+const providerUpdateSchema = z.object({
+  username: z
+    .string()
+    .min(1, "Business name is required")
+    .min(3, "Business name must be at least 3 characters"),
+  phoneNo: z
+    .string()
+    .min(1, "Phone number is required")
+    .regex(/^\d{11}$/, "Phone number must be exactly 11 digits"),
+  shopAddress: z
+    .string()
+    .min(1, "Shop address is required")
+    .min(10, "Shop address must be at least 10 characters"),
+});
 
 export default function ProviderProfile() {
   const [provider, setProvider] = useState(null);
@@ -32,11 +51,20 @@ export default function ProviderProfile() {
   // Initialize profile upload service
   const profileUploadService = new ProfileUploadService();
   
-  // Form data
-  const [formData, setFormData] = useState({
-    username: '',
-    phoneNo: '',
-    shopAddress: ''
+  // React Hook Form setup
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(providerUpdateSchema),
+    defaultValues: {
+      username: '',
+      phoneNo: '',
+      shopAddress: ''
+    },
   });
 
   useEffect(() => {
@@ -66,11 +94,9 @@ export default function ProviderProfile() {
         
         if (response.data.success) {
           setProvider(response.data.data);
-          setFormData({
-            username: response.data.data.username,
-            phoneNo: response.data.data.phoneNo,
-            shopAddress: response.data.data.shopAddress
-          });
+          setValue("username", response.data.data.username || '');
+          setValue("phoneNo", response.data.data.phoneNo || '');
+          setValue("shopAddress", response.data.data.shopAddress || '');
         } else {
           setError(response.data.message || "Failed to load profile");
         }
@@ -174,19 +200,14 @@ export default function ProviderProfile() {
     );
   };
 
-  const handleSave = async () => {
-    if (!formData.username.trim() || !formData.phoneNo.trim() || !formData.shopAddress.trim()) {
-      Alert.alert("Error", "All fields are required");
-      return;
-    }
-
+  const handleSave = async (data) => {
     setSaving(true);
     try {
       const userData = await AsyncStorage.getItem("user");
       const parsedUser = JSON.parse(userData);
       const token = parsedUser.accessToken;
 
-      const response = await axios.put(`${API_URL}/users/provider/profile`, formData, {
+      const response = await axios.put(`${API_URL}/users/provider/profile`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -209,11 +230,9 @@ export default function ProviderProfile() {
   };
 
   const handleCancel = () => {
-    setFormData({
-      username: provider.username,
-      phoneNo: provider.phoneNo,
-      shopAddress: provider.shopAddress
-    });
+    setValue("username", provider.username || '');
+    setValue("phoneNo", provider.phoneNo || '');
+    setValue("shopAddress", provider.shopAddress || '');
     setEditing(false);
   };
 
@@ -340,7 +359,7 @@ export default function ProviderProfile() {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.saveButton} 
-                    onPress={handleSave}
+                    onPress={handleSubmit(handleSave)}
                     disabled={saving}
                   >
                     {saving ? (
@@ -377,17 +396,26 @@ export default function ProviderProfile() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone Number</Text>
                 {editing ? (
-                  <TextInput
-                    style={styles.inputField}
-                    value={formData.phoneNo}
-                    onChangeText={(text) => setFormData({...formData, phoneNo: text})}
-                    placeholder="Enter phone number"
-                    keyboardType="phone-pad"
-                    returnKeyType="next"
-                    blurOnSubmit={false}
+                  <Controller
+                    control={control}
+                    name="phoneNo"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={[styles.inputField, errors.phoneNo && styles.errorInput]}
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Enter phone number"
+                        keyboardType="phone-pad"
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                      />
+                    )}
                   />
                 ) : (
                   <Text style={styles.infoValue}>{provider.phoneNo || "Not provided"}</Text>
+                )}
+                {editing && errors.phoneNo && (
+                  <Text style={styles.errorText}>{errors.phoneNo.message}</Text>
                 )}
               </View>
             </View>
@@ -402,16 +430,25 @@ export default function ProviderProfile() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Business Name</Text>
                 {editing ? (
-                  <TextInput
-                    style={styles.inputField}
-                    value={formData.username}
-                    onChangeText={(text) => setFormData({...formData, username: text})}
-                    placeholder="Enter business name"
-                    returnKeyType="next"
-                    blurOnSubmit={false}
+                  <Controller
+                    control={control}
+                    name="username"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={[styles.inputField, errors.username && styles.errorInput]}
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Enter business name"
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                      />
+                    )}
                   />
                 ) : (
                   <Text style={styles.infoValue}>{provider.username}</Text>
+                )}
+                {editing && errors.username && (
+                  <Text style={styles.errorText}>{errors.username.message}</Text>
                 )}
               </View>
             </View>
@@ -423,19 +460,53 @@ export default function ProviderProfile() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Shop Address</Text>
                 {editing ? (
-                  <TextInput
-                    style={[styles.inputField, styles.multilineInput]}
-                    value={formData.shopAddress}
-                    onChangeText={(text) => setFormData({...formData, shopAddress: text})}
-                    placeholder="Enter shop address"
-                    multiline
-                    numberOfLines={3}
-                    returnKeyType="done"
-                    blurOnSubmit={true}
+                  <Controller
+                    control={control}
+                    name="shopAddress"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={[styles.inputField, styles.multilineInput, errors.shopAddress && styles.errorInput]}
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Enter shop address"
+                        multiline
+                        numberOfLines={3}
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                      />
+                    )}
                   />
                 ) : (
                   <Text style={styles.infoValue}>{provider.shopAddress || "Not provided"}</Text>
                 )}
+                {editing && errors.shopAddress && (
+                  <Text style={styles.errorText}>{errors.shopAddress.message}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Contact Information for Inquiry */}
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Contact & Support</Text>
+            
+            <View style={styles.infoItem}>
+              <MaterialIcons name="email" size={22} color="#8A63D2" />
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Email Address</Text>
+                <Text style={styles.infoValue}>tailorwash@gmail.com</Text>
+                <Text style={styles.fieldNote}>For inquiries and support</Text>
+              </View>
+            </View>
+            
+            <View style={styles.separator} />
+            
+            <View style={styles.infoItem}>
+              <MaterialIcons name="phone" size={22} color="#8A63D2" />
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Phone Number</Text>
+                <Text style={styles.infoValue}>03160263282</Text>
+                <Text style={styles.fieldNote}>Contact number for inquiries</Text>
               </View>
             </View>
           </View>
@@ -664,6 +735,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#8A63D2',
     marginTop: 4,
+  },
+  errorInput: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 16,
+  },
+  fieldNote: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   multilineInput: {
     height: 60,

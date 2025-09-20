@@ -32,6 +32,15 @@ export default function OtpVerification() {
       });
       return;
     }
+    
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setSnackbar({
+        visible: true,
+        message: "OTP must be exactly 6 digits",
+        type: "error",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -90,6 +99,17 @@ export default function OtpVerification() {
         {loading ? <ActivityIndicator animating color="#fff" /> : "Verify OTP"}
       </Button>
 
+      {/* Go to Home Button */}
+      <Button
+        mode="text"
+        onPress={() => router.push("/")}
+        style={styles.homeButton}
+        labelStyle={{ color: "#6B7280", fontSize: 14 }}
+        icon="home"
+      >
+        Go to Home
+      </Button>
+
       <Snackbar
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ ...snackbar, visible: false })}
@@ -121,4 +141,5 @@ const styles = StyleSheet.create({
   },
   input: { width: "80%", marginBottom: 20, backgroundColor: "#fff" },
   verifyButton: { width: "80%", borderRadius: 8, backgroundColor: "#8A63D2" },
+  homeButton: { marginTop: 12, alignSelf: "center" },
 });

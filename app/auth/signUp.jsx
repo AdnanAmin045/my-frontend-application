@@ -33,7 +33,11 @@ const signupSchema = z
   .object({
     username: z.string().min(3, "Name must be at least 3 characters"),
     email: z.string().email("Please enter a valid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+        "Password must contain at least one letter, one number, and one special character"),
     confirmPassword: z.string().min(1, "Confirm Password is required"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -229,6 +233,17 @@ const Signup = () => {
               >
                 Login
               </Button>
+
+              {/* Go to Home Button */}
+              <Button
+                mode="text"
+                onPress={() => router.push("/")}
+                style={styles.homeButton}
+                labelStyle={{ color: "#6B7280", fontSize: 14 }}
+                icon="home"
+              >
+                Go to Home
+              </Button>
             </View>
           </Animated.View>
         </View>
@@ -318,6 +333,7 @@ const styles = StyleSheet.create({
   passwordContainer: { flexDirection: "row", alignItems: "center", position: "relative" },
   iconButton: { position: "absolute", right: 8, top: "28%", transform: [{ translateY: -11 }], zIndex: 2 },
   signUpButton: { borderRadius: 8, paddingVertical: 8, backgroundColor: "#6C63FF" },
+  homeButton: { marginTop: 16, alignSelf: "center" },
   errorText: { color: "#EF4444", fontSize: 12, marginTop: 2 },
   profilePicContainer: { alignItems: "center", marginBottom: 24 },
   profilePicWrapper: { alignItems: "center", justifyContent: "center" },

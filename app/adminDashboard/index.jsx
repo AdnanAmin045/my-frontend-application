@@ -87,6 +87,17 @@ const AdminDashboard = () => {
   };
 
   const handleSave = async () => {
+    // Validate username field
+    if (!formData.username.trim()) {
+      Alert.alert("Error", "Username cannot be empty");
+      return;
+    }
+
+    if (formData.username.trim().length < 3) {
+      Alert.alert("Error", "Username must be at least 3 characters long");
+      return;
+    }
+
     try {
       const userData = await AsyncStorage.getItem("user");
       const parsedUser = JSON.parse(userData);
@@ -124,8 +135,8 @@ const AdminDashboard = () => {
   const handleChangePassword = async () => {
     if (updatingPassword) return; // Prevent multiple submissions
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      Alert.alert("Error", "New passwords do not match");
+    if (!passwordData.currentPassword.trim()) {
+      Alert.alert("Error", "Please enter your current password");
       return;
     }
 
@@ -134,8 +145,15 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (!passwordData.currentPassword.trim()) {
-      Alert.alert("Error", "Please enter your current password");
+    // Enhanced password validation
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+    if (!passwordRegex.test(passwordData.newPassword)) {
+      Alert.alert("Error", "New password must contain at least one letter, one number, and one special character");
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      Alert.alert("Error", "New passwords do not match");
       return;
     }
 

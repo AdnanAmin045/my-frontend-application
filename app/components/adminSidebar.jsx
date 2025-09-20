@@ -8,6 +8,7 @@ const providerSidebarItems = [
   { href: "/adminDashboard/services", icon: "cogs", label: "Services" },             // Cogs for services
   { href: "/adminDashboard/review", icon: "star", label: "Review" },                // Star for reviews
   { href: "/adminDashboard/payments", icon: "money-bill-wave", label: "Payments" },  // Money for payments
+  { href: "/adminDashboard/notifications", icon: "bell", label: "Notifications" },   // Bell for notifications
 ];
 
 export default function AdminSidebar() {
@@ -83,8 +84,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    minWidth: 90,
+    paddingHorizontal: 12,
+    minWidth: 75,
     flex: 1,
   },
   activeIconContainer: {
@@ -105,11 +106,11 @@ const styles = StyleSheet.create({
   },
   label: {
     color: "#D1D5DB",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     textAlign: "center",
     marginTop: 2,
-    lineHeight: 14,
+    lineHeight: 13,
   },
   activeLabel: {
     color: "#3B82F6",

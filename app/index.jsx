@@ -9,13 +9,17 @@ import {
   TouchableOpacity,
   Linking,
   StatusBar,
+  Modal,
+  ActivityIndicator,
 } from "react-native";
 import { Button, Text, Card } from "react-native-paper";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import axios from "axios";
 import icon from "../assets/icon.png";
+import { API_URL } from "../baseURL";
 
 const { width } = Dimensions.get("window");
 
@@ -23,6 +27,10 @@ export default function Index() {
   const router = useRouter();
   const [accessToken, setAccessToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -39,6 +47,50 @@ export default function Index() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+    if (userRole && (userRole === "customer" || userRole === "provider")) {
+      fetchNotifications();
+    }
+  }, [userRole]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const response = await axios.get(`${API_URL}/admin/notifications/role/${userRole}`);
+      
+      if (response.data.success && response.data.data.length > 0) {
+        setNotifications(response.data.data);
+        
+        // Always show popup when user visits app/index.jsx if there are notifications
+        setShowNotificationPopup(true);
+        setCurrentNotificationIndex(0);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const handleCloseNotificationPopup = async () => {
+    setShowNotificationPopup(false);
+  };
+
+  const handleNextNotification = () => {
+    if (currentNotificationIndex < notifications.length - 1) {
+      setCurrentNotificationIndex(currentNotificationIndex + 1);
+    } else {
+      handleCloseNotificationPopup();
+    }
+  };
+
+  const resetNotificationPopup = async () => {
+    if (notifications.length > 0) {
+      setShowNotificationPopup(true);
+      setCurrentNotificationIndex(0);
+    }
+  };
 
   const handleDashboardNavigation = () => {
     if (userRole === "customer") router.replace("/userDashboard");
@@ -358,6 +410,64 @@ export default function Index() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Notification Popup Modal */}
+      <Modal
+        visible={showNotificationPopup}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseNotificationPopup}
+      >
+        <View style={styles.notificationPopupOverlay}>
+          <View style={styles.notificationPopup}>
+            {/* Header */}
+            <View style={styles.notificationPopupHeader}>
+              <Text style={styles.notificationPopupTitle}>
+                {userRole === "customer" ? "Customer Update" : "Provider Update"}
+              </Text>
+              <TouchableOpacity
+                style={styles.notificationPopupCloseButton}
+                onPress={handleCloseNotificationPopup}
+              >
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            {notifications.length > 0 && (
+              <View style={styles.notificationPopupContent}>
+                <View style={styles.notificationPopupIcon}>
+                  <FontAwesome5 name="bell" size={32} color="#FF6B35" />
+                </View>
+                
+                <Text style={styles.notificationPopupNotificationTitle}>
+                  {notifications[currentNotificationIndex]?.title}
+                </Text>
+                
+                <Text style={styles.notificationPopupNotificationDescription}>
+                  {notifications[currentNotificationIndex]?.description}
+                </Text>
+              </View>
+            )}
+
+            {/* Footer */}
+            <View style={styles.notificationPopupFooter}>
+              <Text style={styles.notificationPopupCounter}>
+                {currentNotificationIndex + 1} of {notifications.length}
+              </Text>
+              
+              <TouchableOpacity
+                style={styles.notificationPopupNextButton}
+                onPress={handleNextNotification}
+              >
+                <Text style={styles.notificationPopupNextButtonText}>
+                  {currentNotificationIndex < notifications.length - 1 ? "Next" : "Got it!"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -739,5 +849,95 @@ const styles = StyleSheet.create({
     backgroundColor: "#374151",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  // Notification Popup Styles
+  notificationPopupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  notificationPopup: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    width: "100%",
+    maxWidth: 350,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  notificationPopupHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  notificationPopupTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  notificationPopupCloseButton: {
+    padding: 4,
+  },
+  notificationPopupContent: {
+    padding: 20,
+    alignItems: "center",
+  },
+  notificationPopupIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FFF3E0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  notificationPopupNotificationTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111827",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  notificationPopupNotificationDescription: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  notificationPopupFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  notificationPopupCounter: {
+    fontSize: 14,
+    color: "#9CA3AF",
+  },
+  notificationPopupNextButton: {
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  notificationPopupNextButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

@@ -39,7 +39,7 @@ export default function ProviderSidebar() {
                 ]}>
                   <FontAwesome5 
                     name={item.icon} 
-                    size={20} 
+                    size={22} 
                     color={isActive ? "#FFFFFF" : "#9CA3AF"} 
                   />
                 </View>
@@ -76,37 +76,40 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
-    paddingHorizontal: 10,
+    justifyContent: "space-evenly",
+    paddingHorizontal: 8,
   },
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    minWidth: 80,
+    minWidth: 75,
+    flex: 1,
   },
   activeIconContainer: {
     backgroundColor: "rgba(59, 130, 246, 0.1)",
     borderRadius: 12,
   },
   iconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   activeIconWrapper: {
     backgroundColor: "#3B82F6",
   },
   label: {
     color: "#D1D5DB",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     textAlign: "center",
+    marginTop: 2,
+    lineHeight: 13,
   },
   activeLabel: {
     color: "#3B82F6",

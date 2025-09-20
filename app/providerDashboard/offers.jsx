@@ -48,6 +48,7 @@ export default function OffersScreen() {
   const [profileActive, setProfileActive] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
 
   const {
     control,
@@ -289,24 +290,82 @@ const addService = () => {
       const accessToken = token ? JSON.parse(token).accessToken : null;
       if (!accessToken) return;
 
-      const response = await axios.post(`${API_URL}/offers/create`, data, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      let response;
+      if (editingOffer) {
+        // Update existing offer
+        response = await axios.put(`${API_URL}/offers/update/${editingOffer._id}`, data, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+      } else {
+        // Create new offer
+        response = await axios.post(`${API_URL}/offers/create`, data, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+      }
 
       if (response.status === 200 || response.status === 201) {
-        Alert.alert("Success", "Offer created successfully");
+        Alert.alert("Success", editingOffer ? "Offer updated successfully" : "Offer created successfully");
         fetchOffers();
         reset();
         setVisible(false);
+        setEditingOffer(null);
       }
     } catch (err) {
-("Error creating offer:", err.response?.data || err.message);
-      Alert.alert("Error", "Failed to create offer");
+      console.log("Error saving offer:", err.response?.data || err.message);
+      Alert.alert("Error", editingOffer ? "Failed to update offer" : "Failed to create offer");
     } finally {
       setModalLoading(false);
     }
+  };
+
+  // ✅ Edit Offer - Load data into form
+  const editOffer = (offer) => {
+    setEditingOffer(offer);
+    setValue("title", offer.title);
+    setValue("description", offer.description);
+    setValue("discountPercentage", offer.discountPercentage);
+    setValue("servicesIncluded", offer.servicesIncluded || []);
+    setVisible(true);
+  };
+
+  // ✅ Delete Offer
+  const deleteOffer = async (offerId) => {
+    Alert.alert(
+      "Delete Offer",
+      "Are you sure you want to delete this offer?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("user");
+              const accessToken = token ? JSON.parse(token).accessToken : null;
+              if (!accessToken) return;
+
+              const response = await axios.delete(`${API_URL}/offers/delete/${offerId}`, {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              });
+
+              if (response.status === 200) {
+                Alert.alert("Success", "Offer deleted successfully");
+                fetchOffers();
+              }
+            } catch (err) {
+              console.log("Error deleting offer:", err.response?.data || err.message);
+              Alert.alert("Error", "Failed to delete offer");
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -344,7 +403,11 @@ const addService = () => {
           borderRadius: 8,
           marginBottom: 10,
         }}
-        onPress={() => setVisible(true)}
+        onPress={() => {
+          setEditingOffer(null);
+          reset();
+          setVisible(true);
+        }}
       >
         <Text
           style={{ color: "white", textAlign: "center", fontWeight: "600" }}
@@ -433,6 +496,48 @@ const addService = () => {
                   </Text>
                 )}
               </View>
+
+              {/* Action Buttons */}
+              <View style={{ 
+                flexDirection: "row", 
+                justifyContent: "space-between", 
+                marginTop: 12,
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: "#E5E7EB"
+              }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#3B82F6",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    flex: 1,
+                    marginRight: 8,
+                  }}
+                  onPress={() => editOffer(item)}
+                >
+                  <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#EF4444",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    flex: 1,
+                    marginLeft: 8,
+                  }}
+                  onPress={() => deleteOffer(item._id)}
+                >
+                  <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         />
@@ -456,8 +561,26 @@ const addService = () => {
             <Text
               style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}
             >
-              Create New Offer
+              {editingOffer ? "Edit Offer" : "Create New Offer"}
             </Text>
+
+            {/* Note about delivery charges */}
+            <View style={{
+              backgroundColor: "#FFF3E0",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 15,
+              borderLeftWidth: 4,
+              borderLeftColor: "#FF6B35"
+            }}>
+              <Text style={{
+                color: "#FF6B35",
+                fontWeight: "600",
+                fontSize: 14
+              }}>
+                📦 Note: If you want to include delivery charges, please include them in the price.
+              </Text>
+            </View>
 
             {/* Title */}
             <Controller
@@ -653,7 +776,7 @@ const addService = () => {
                     fontWeight: "600",
                   }}
                 >
-                  Save Offer
+{editingOffer ? "Update Offer" : "Save Offer"}
                 </Text>
               )}
             </TouchableOpacity>
@@ -663,6 +786,7 @@ const addService = () => {
               onPress={() => {
                 reset();
                 setVisible(false);
+                setEditingOffer(null);
               }}
               disabled={modalLoading}
             >

@@ -11,13 +11,11 @@ import {
   Text,
   TextInput,
   Button,
-  IconButton,
   ActivityIndicator,
   Snackbar,
 } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as z from "zod";
 import axios from "axios";
 import { useRouter } from "expo-router";
@@ -26,17 +24,16 @@ import { API_URL } from "../../baseURL";
 
 const { width } = Dimensions.get("window");
 
-const loginSchema = z.object({
+// Zod validation schema for email
+const forgotPasswordSchema = z.object({
   email: z
     .string()
     .min(1, "Email is required")
-    .email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+    .email("Please enter a valid email address"),
 });
 
-const Login = () => {
+const ForgotPassword = () => {
   const router = useRouter();
-  const [secureText, setSecureText] = useState(true);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState("customer");
   const [snackbar, setSnackbar] = useState({
@@ -48,10 +45,14 @@ const Login = () => {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(loginSchema),
-    mode: "onSubmit",
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onChange",
+    defaultValues: {
+      email: "",
+    },
   });
 
   const showSnackbar = (message, type = "success") => {
@@ -59,45 +60,51 @@ const Login = () => {
   };
 
   const onSubmit = async (data) => {
+    // Validate role selection
+    if (!role) {
+      showSnackbar("Please select a role", "error");
+      return;
+    }
+    
     setLoading(true);
+    
     try {
-      if (role === "Admin") {
-        // Admin login - use unified endpoint with OTP
-        const payload = { ...data, role };
-        const response = await axios.post(`${API_URL}/users/login`, payload);
-        
-        if (response.status === 200) {
-          const { userId, email, role: userRole } = response.data.data;
-          // Redirect to OTP verification
-          router.push({
-            pathname: "/auth/loginOTP",
-            params: { email, userId, role: userRole }
-          });
-        }
-      } else {
-        // Customer/Provider login - use existing endpoint
-        const payload = { ...data, role };
-        const response = await axios.post(`${API_URL}/users/login`, payload);
-        
-        if (response.status === 200) {
-          showSnackbar("OTP sent to your email!", "success");
-          router.push({
-            pathname: "/auth/loginOTP",
-            params: {
-              email: data.email,
-              userId: response.data.data.userId,
-              role: role,
-            },
-          });
-        } else {
-          showSnackbar("Invalid credentials!", "error");
-        }
+      const payload = { ...data, role };
+      const response = await axios.post(`${API_URL}/users/forgot-password`, payload, { timeout: 10000 });
+      
+      if (response.status === 200) {
+        showSnackbar("OTP sent to your email!", "success");
+        // Navigate to reset password screen with email and role
+        router.push({
+          pathname: "/auth/resetPassword",
+          params: { 
+            email: data.email, 
+            role: role,
+            resetToken: response.data.data.resetToken 
+          }
+        });
       }
     } catch (error) {
-      showSnackbar(
-        error?.response?.data?.message || "Something went wrong",
-        "error"
-      );
+      // Handle specific error cases
+      let errorMessage = "Something went wrong";
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = "Request timeout. Please check your internet connection and try again.";
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        errorMessage = "Network error. Please check your internet connection and make sure the server is running.";
+      } else if (error.response?.status === 404) {
+        errorMessage = `Email not found for ${role} role. Please check your email address and make sure you selected the correct role.`;
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data.message || "Invalid email or role combination";
+      } else if (error.response?.status === 429) {
+        errorMessage = "Too many requests. Please try again later.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      showSnackbar(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -114,20 +121,22 @@ const Login = () => {
       >
         <View style={styles.centeredContainer}>
           <Animated.View entering={FadeInUp.duration(800)} style={styles.card}>
-            <View style={styles.header}>
-              <Text variant="headlineLarge" style={styles.title}>
-                Welcome Back
+            {/* Header */}
+            <Animated.View entering={FadeInUp.duration(800).delay(200)} style={styles.header}>
+              <Text style={styles.title}>Forgot Password</Text>
+              <Text style={styles.subtitle}>
+                Select your role and enter your email address. We'll verify the email exists for that role and send you an OTP to reset your password.
               </Text>
-              <Text variant="bodyMedium" style={styles.subtitle}>
-                Login to continue
-              </Text>
-            </View>
+            </Animated.View>
 
-            {/* Role Selector */}
-            <View style={styles.roleContainer}>
+            {/* Role Selection */}
+            <Animated.View entering={FadeInDown.duration(800).delay(400)} style={styles.roleContainer}>
               <Button
                 mode={role === "customer" ? "contained" : "outlined"}
-                onPress={() => setRole("customer")}
+                onPress={() => {
+                  setRole("customer");
+                  reset({ email: "" }); // Clear email field when role changes
+                }}
                 style={[
                   styles.roleButton,
                   role === "customer" && styles.selectedRoleButton,
@@ -140,7 +149,10 @@ const Login = () => {
 
               <Button
                 mode={role === "provider" ? "contained" : "outlined"}
-                onPress={() => setRole("provider")}
+                onPress={() => {
+                  setRole("provider");
+                  reset({ email: "" }); // Clear email field when role changes
+                }}
                 style={[
                   styles.roleButton,
                   role === "provider" && styles.selectedRoleButton,
@@ -153,7 +165,10 @@ const Login = () => {
 
               <Button
                 mode={role === "Admin" ? "contained" : "outlined"}
-                onPress={() => setRole("Admin")}
+                onPress={() => {
+                  setRole("Admin");
+                  reset({ email: "" }); // Clear email field when role changes
+                }}
                 style={[
                   styles.roleButton,
                   role === "Admin" && styles.selectedRoleButton,
@@ -163,60 +178,42 @@ const Login = () => {
               >
                 Admin
               </Button>
-            </View>
+            </Animated.View>
 
             {/* Form */}
             <Animated.View entering={FadeInDown.duration(800)}>
               <InputField
-                label="Email"
+                label="Email Address"
                 control={control}
                 name="email"
                 keyboardType="email-address"
                 error={errors.email && errors.email.message}
               />
 
-              <PasswordField
-                label="Password"
-                control={control}
-                name="password"
-                secureText={secureText}
-                setSecureText={setSecureText}
-                error={errors.password && errors.password.message}
-              />
-
               <Button
                 mode="contained"
                 onPress={handleSubmit(onSubmit)}
                 disabled={loading}
-                style={styles.signUpButton}
+                style={styles.submitButton}
                 labelStyle={{ fontWeight: "bold", fontSize: 18 }}
               >
                 {loading ? (
                   <ActivityIndicator animating color="#fff" />
                 ) : (
-                  "Login"
+                  "Send OTP"
                 )}
               </Button>
 
-              {/* 🔥 Added Sign Up Button */}
-              <Button
-                mode="text"
-                onPress={() => router.push("/auth/signUp")}
-                style={styles.registerButton}
-                labelStyle={{ color: "#8A63D2", fontSize: 16 }}
-              >
-                Don't have an account? Sign Up
-              </Button>
 
-              {/* Forgot Password Button */}
+              {/* Back to Login Button */}
               <Button
                 mode="text"
-                onPress={() => router.push("/auth/forgotPassword")}
-                style={styles.forgotPasswordButton}
-                labelStyle={{ color: "#8A63D2", fontSize: 14 }}
-                icon="lock-reset"
+                onPress={() => router.push("/auth/login")}
+                style={styles.backButton}
+                labelStyle={{ color: "#8A63D2", fontSize: 16 }}
+                icon="arrow-left"
               >
-                Forgot Password?
+                Back to Login
               </Button>
 
               {/* Go to Home Button */}
@@ -274,61 +271,20 @@ const InputField = ({ control, name, label, keyboardType, error }) => (
   </View>
 );
 
-// Password Field
-const PasswordField = ({
-  control,
-  name,
-  label,
-  secureText,
-  setSecureText,
-  error,
-}) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.passwordContainer}>
-      <Controller
-        control={control}
-        name={name}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            mode="outlined"
-            secureTextEntry={secureText}
-            value={value}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            style={[styles.input, { flex: 1 }]}
-            textColor="black"
-            error={!!error}
-            theme={{ colors: { primary: "#8A63D2", placeholder: "#AAA" } }}
-          />
-        )}
-      />
-      <IconButton
-        icon={secureText ? "eye-off" : "eye"}
-        onPress={() => setSecureText(!secureText)}
-        size={22}
-        style={styles.iconButton}
-        iconColor="#AAA"
-      />
-    </View>
-    {error && <Text style={styles.errorText}>{error}</Text>}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: "#F0F2F5" },
+  outerContainer: {
+    flex: 1,
+    backgroundColor: "#F0F2F5",
+  },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    minHeight: "100%",
+    paddingVertical: 40,
   },
   centeredContainer: {
-    flex: 1,
     width: "100%",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
   },
   card: {
     width: width > 500 ? 450 : "95%",
@@ -354,12 +310,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginBottom: 10,
+    marginTop: 8,
   },
   roleContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap", // 🔥 allow wrap on smaller screens
+    flexWrap: "wrap",
     marginBottom: 20,
     gap: 8,
   },
@@ -371,13 +328,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#8A63D2",
   },
   roleButtonLabel: {
-    fontSize: 15, // 🔥 increase for better readability
+    fontSize: 15,
     fontWeight: "600",
-    textTransform: "none", // make sure text is visible properly
+    textTransform: "none",
   },
   roleButtonContent: {
-    height: 44, // 🔥 make button slightly taller
+    height: 44,
     justifyContent: "center",
+    alignItems: "center",
   },
   label: {
     color: "#22223B",
@@ -387,28 +345,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   input: { backgroundColor: "#F5F6FA", borderRadius: 8 },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "relative",
-  },
-  iconButton: {
-    position: "absolute",
-    right: 10,
-    top: "28%",
-    transform: [{ translateY: -11 }],
-    zIndex: 2,
-  },
-  signUpButton: {
+  submitButton: {
     borderRadius: 8,
     marginTop: 24,
     backgroundColor: "#8A63D2",
     paddingVertical: 8,
   },
-  registerButton: { marginTop: 10, alignSelf: "center" },
-  forgotPasswordButton: { marginTop: 8, alignSelf: "center" },
-  homeButton: { marginTop: 4, alignSelf: "center" },
+  backButton: { marginTop: 10, alignSelf: "center" },
+  homeButton: { marginTop: 8, alignSelf: "center" },
   errorText: { color: "#FF4D4F", fontSize: 13, marginBottom: 6, marginTop: 2 },
 });
 
-export default Login;
+export default ForgotPassword;

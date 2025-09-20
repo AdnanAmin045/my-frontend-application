@@ -30,7 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const orderSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters long"),
   address: z.string().min(5, "Address must be at least 5 characters long"),
-  phone: z.string().regex(/^\d{10,15}$/, "Phone number must be 10-15 digits"),
+  phone: z.string().regex(/^\d{11}$/, "Phone number must be 11 digits"),
   email: z.string().email("Invalid email address"),
   selectedServices: z
     .array(
@@ -700,12 +700,18 @@ const Explore = () => {
                   color="#666"
                   style={styles.inputIcon}
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
+                 <TextInput
+                   style={styles.input}
+                   placeholder="Full Name"
+                   value={fullName}
+                   onChangeText={(text) => {
+                     setFullName(text);
+                     // Clear error when user starts typing
+                     if (errors.fullName) {
+                       setErrors(prev => ({ ...prev, fullName: undefined }));
+                     }
+                   }}
+                 />
               </View>
               {errors.fullName && (
                 <Text style={styles.errorText}>{errors.fullName}</Text>
@@ -718,12 +724,18 @@ const Explore = () => {
                   color="#666"
                   style={styles.inputIcon}
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Delivery Address"
-                  value={address}
-                  onChangeText={setAddress}
-                />
+                 <TextInput
+                   style={styles.input}
+                   placeholder="Delivery Address"
+                   value={address}
+                   onChangeText={(text) => {
+                     setAddress(text);
+                     // Clear error when user starts typing
+                     if (errors.address) {
+                       setErrors(prev => ({ ...prev, address: undefined }));
+                     }
+                   }}
+                 />
               </View>
               {errors.address && (
                 <Text style={styles.errorText}>{errors.address}</Text>
@@ -736,13 +748,19 @@ const Explore = () => {
                   color="#666"
                   style={styles.inputIcon}
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone Number"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                />
+                 <TextInput
+                   style={styles.input}
+                   placeholder="Phone Number"
+                   keyboardType="phone-pad"
+                   value={phone}
+                   onChangeText={(text) => {
+                     setPhone(text);
+                     // Clear error when user starts typing
+                     if (errors.phone) {
+                       setErrors(prev => ({ ...prev, phone: undefined }));
+                     }
+                   }}
+                 />
               </View>
               {errors.phone && (
                 <Text style={styles.errorText}>{errors.phone}</Text>
@@ -755,13 +773,19 @@ const Explore = () => {
                   color="#666"
                   style={styles.inputIcon}
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email Address"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                />
+                 <TextInput
+                   style={styles.input}
+                   placeholder="Email Address"
+                   keyboardType="email-address"
+                   value={email}
+                   onChangeText={(text) => {
+                     setEmail(text);
+                     // Clear error when user starts typing
+                     if (errors.email) {
+                       setErrors(prev => ({ ...prev, email: undefined }));
+                     }
+                   }}
+                 />
               </View>
               {errors.email && (
                 <Text style={styles.errorText}>{errors.email}</Text>

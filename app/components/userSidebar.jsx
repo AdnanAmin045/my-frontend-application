@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet, Dimensions, ScrollView, useWindowDimensions } from "react-native";
 import { Link, usePathname } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 
@@ -14,43 +14,48 @@ const userSidebarItems = [
 
 export default function UserSidebar() {
   const pathname = usePathname();
-
+  const { width } = useWindowDimensions();
+  
   return (
     <View style={styles.container}>
-      <View style={styles.menuContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { minWidth: width } // Ensure it spans full width on larger screens
+        ]}
+      >
         {userSidebarItems.map((item) => {
           const isActive = pathname === item.href;
-
+          
           return (
             <Link key={item.href} href={item.href} asChild>
-              <TouchableOpacity
-                style={[
-                  styles.iconContainer,
-                  isActive && styles.activeIconContainer,
-                ]}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.iconWrapper,
-                    isActive && styles.activeIconWrapper,
-                  ]}
-                >
-                  <FontAwesome5
-                    name={item.icon}
-                    size={20}
-                    color={isActive ? "#FFFFFF" : "#9CA3AF"}
-                    style={{ textAlign: "center" }}
+              <TouchableOpacity style={[
+                styles.iconContainer,
+                isActive && styles.activeIconContainer
+              ]}>
+                <View style={[
+                  styles.iconWrapper,
+                  isActive && styles.activeIconWrapper
+                ]}>
+                  <FontAwesome5 
+                    name={item.icon} 
+                    size={22} 
+                    color={isActive ? "#FFFFFF" : "#9CA3AF"} 
                   />
                 </View>
-                <Text style={[styles.label, isActive && styles.activeLabel]}>
+                <Text style={[
+                  styles.label,
+                  isActive && styles.activeLabel
+                ]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
             </Link>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -59,29 +64,29 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: "#111827",
     paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#374151",
+    borderBottomWidth: 1,
+    borderBottomColor: "#374151",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: -2,
+      height: 2,
     },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
-    elevation: 5,
+    elevation: 4,
   },
-  menuContainer: {
+  scrollContent: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
     alignItems: "center",
+    justifyContent: "space-evenly",
     paddingHorizontal: 8,
   },
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    minWidth: 70,
+    minWidth: 75,
     flex: 1,
   },
   activeIconContainer: {
@@ -89,25 +94,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   iconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
-    marginBottom: 6,
-    alignSelf: "center",
+    marginBottom: 8,
   },
   activeIconWrapper: {
     backgroundColor: "#3B82F6",
   },
   label: {
     color: "#D1D5DB",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     textAlign: "center",
-    alignSelf: "center",
-    width: "100%",
+    marginTop: 2,
+    lineHeight: 13,
   },
   activeLabel: {
     color: "#3B82F6",
