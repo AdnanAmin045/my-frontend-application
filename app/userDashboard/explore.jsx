@@ -59,6 +59,7 @@ const Explore = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [allProviders, setAllProviders] = useState([]); // Store all providers for local search
+  const [showDiscountOnly, setShowDiscountOnly] = useState(false); // Filter for providers with discounts
   const { confirmPayment } = useStripe();
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -137,25 +138,32 @@ const Explore = () => {
 
   // Local search function
   const performLocalSearch = (query) => {
-    if (!query.trim()) {
-      // If no search query, show all providers
-      setGroupedOffers(allProviders);
-      return;
+    let filteredProviders = allProviders;
+
+    // Apply discount filter first
+    if (showDiscountOnly) {
+      filteredProviders = filteredProviders.filter((provider) => {
+        // Check if any offer has discount > 0
+        return provider.offers.some(offer => offer.discountPercentage > 0);
+      });
     }
 
-    const searchTerm = query.toLowerCase().trim();
+    // Apply search filter if query exists
+    if (query.trim()) {
+      const searchTerm = query.toLowerCase().trim();
 
-    const filteredProviders = allProviders.filter((provider) => {
-      const username = provider.serviceProvider.username?.toLowerCase() || "";
-      const shopAddress = provider.serviceProvider.shopAddress?.toLowerCase() || "";
-      const services = provider.serviceProvider.servicesOffered?.map(s => s.name?.toLowerCase()).join(" ") || "";
+      filteredProviders = filteredProviders.filter((provider) => {
+        const username = provider.serviceProvider.username?.toLowerCase() || "";
+        const shopAddress = provider.serviceProvider.shopAddress?.toLowerCase() || "";
+        const services = provider.serviceProvider.servicesOffered?.map(s => s.name?.toLowerCase()).join(" ") || "";
 
-      return (
-        username.includes(searchTerm) ||
-        shopAddress.includes(searchTerm) ||
-        services.includes(searchTerm)
-      );
-    });
+        return (
+          username.includes(searchTerm) ||
+          shopAddress.includes(searchTerm) ||
+          services.includes(searchTerm)
+        );
+      });
+    }
 
     setGroupedOffers(filteredProviders);
   };
@@ -176,7 +184,7 @@ const Explore = () => {
     }, 300); // Reduced debounce time since it's local search
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, allProviders]);
+  }, [searchQuery, allProviders, showDiscountOnly]);
 
   // Clear search
   const handleClearSearch = () => {
@@ -233,6 +241,20 @@ const Explore = () => {
   };
 
   const calculateTotal = () => {
+    if (!selectedServices || selectedServices.length === 0) return "0.00";
+    const servicesTotal = selectedServices.reduce((sum, service) => {
+      const quantity = quantities[service.name] || 1;
+      return sum + service.price * quantity;
+    }, 0);
+    
+    // Add delivery charges if provider is selected
+    const deliveryCharges = selectedProvider?.serviceProvider?.deliveryCharges || 0;
+    const total = servicesTotal + deliveryCharges;
+    
+    return total.toFixed(2);
+  };
+
+  const calculateServicesTotal = () => {
     if (!selectedServices || selectedServices.length === 0) return "0.00";
     const total = selectedServices.reduce((sum, service) => {
       const quantity = quantities[service.name] || 1;
@@ -427,6 +449,24 @@ const Explore = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Discount Filter Button */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity 
+          style={[styles.filterButton, showDiscountOnly && styles.activeFilterButton]}
+          onPress={() => setShowDiscountOnly(!showDiscountOnly)}
+        >
+          <Icon 
+            name={showDiscountOnly ? "check-circle" : "circle"} 
+            size={16} 
+            color={showDiscountOnly ? "#fff" : "#6200ea"} 
+            style={styles.filterIcon}
+          />
+          <Text style={[styles.filterButtonText, showDiscountOnly && styles.activeFilterButtonText]}>
+            Show Only Providers with Discounts
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Search Results Indicator */}
       {searchQuery.trim() && (
         <View style={styles.searchResultsContainer}>
@@ -486,6 +526,22 @@ const Explore = () => {
                   <Text style={styles.providerName}>
                     {item.serviceProvider.username}
                   </Text>
+                  <View style={styles.ratingContainer}>
+                    <View style={styles.starsContainer}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Icon
+                          key={star}
+                          name="star"
+                          size={12}
+                          color={star <= (item.serviceProvider.rating || 0) ? "#FFD700" : "#E0E0E0"}
+                          solid={star <= (item.serviceProvider.rating || 0)}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.ratingText}>
+                      {item.serviceProvider.rating ? item.serviceProvider.rating.toFixed(1) : '0.0'}
+                    </Text>
+                  </View>
                   <Text style={styles.providerServices}>
                     {item.serviceProvider.servicesOffered?.length > 0 
                       ? `${item.serviceProvider.servicesOffered.length} Services`
@@ -507,6 +563,12 @@ const Explore = () => {
                   <Icon name="phone" size={14} color="#666" />
                   <Text style={styles.detailText}>
                     {item.serviceProvider.phoneNo}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Icon name="truck" size={14} color="#666" />
+                  <Text style={styles.detailText}>
+                    PKR {item.serviceProvider.deliveryCharges}
                   </Text>
                 </View>
               </View>
@@ -559,6 +621,22 @@ const Explore = () => {
                   <Text style={styles.providerModalName}>
                     {selectedProvider.serviceProvider.username}
                   </Text>
+                  <View style={styles.modalRatingContainer}>
+                    <View style={styles.modalStarsContainer}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Icon
+                          key={star}
+                          name="star"
+                          size={16}
+                          color={star <= (selectedProvider.serviceProvider.rating || 0) ? "#FFD700" : "#E0E0E0"}
+                          solid={star <= (selectedProvider.serviceProvider.rating || 0)}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.modalRatingText}>
+                      {selectedProvider.serviceProvider.rating ? selectedProvider.serviceProvider.rating.toFixed(1) : '0.0'} out of 5
+                    </Text>
+                  </View>
                   <Text style={styles.providerModalServices}>
                     {selectedProvider.serviceProvider.servicesOffered?.length > 0 
                       ? `${selectedProvider.serviceProvider.servicesOffered.length} Services Available`
@@ -849,8 +927,22 @@ const Explore = () => {
               </ScrollView>
               
               <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalAmount}>PKR: {calculateTotal()}</Text>
+                <View style={styles.totalBreakdown}>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Services Total:</Text>
+                    <Text style={styles.totalAmount}>PKR: {calculateServicesTotal()}</Text>
+                  </View>
+                  {selectedProvider?.serviceProvider?.deliveryCharges !== undefined && (
+                    <View style={styles.totalRow}>
+                      <Text style={styles.totalLabel}>Delivery Charges:</Text>
+                      <Text style={styles.totalAmount}>PKR: {(selectedProvider.serviceProvider.deliveryCharges || 0).toFixed(2)}</Text>
+                    </View>
+                  )}
+                  <View style={[styles.totalRow, styles.finalTotalRow]}>
+                    <Text style={styles.finalTotalLabel}>Total:</Text>
+                    <Text style={styles.finalTotalAmount}>PKR: {calculateTotal()}</Text>
+                  </View>
+                </View>
               </View>
               
               <View style={styles.modalButtons}>
@@ -896,9 +988,22 @@ const Explore = () => {
             </View>
 
             <View style={styles.paymentContent}>
-              <Text style={styles.paymentAmount}>
-                Total: PKR {calculateTotal()}
-              </Text>
+              <View style={styles.paymentBreakdown}>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Services Total:</Text>
+                  <Text style={styles.paymentValue}>PKR: {calculateServicesTotal()}</Text>
+                </View>
+                {selectedProvider?.serviceProvider?.deliveryCharges !== undefined && (
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Delivery Charges:</Text>
+                    <Text style={styles.paymentValue}>PKR: {(selectedProvider.serviceProvider.deliveryCharges || 0).toFixed(2)}</Text>
+                  </View>
+                )}
+                <View style={[styles.paymentRow, styles.paymentTotalRow]}>
+                  <Text style={styles.paymentTotalLabel}>Total:</Text>
+                  <Text style={styles.paymentTotalValue}>PKR: {calculateTotal()}</Text>
+                </View>
+              </View>
 
               <CardField
                 postalCodeEnabled={false}
@@ -1003,6 +1108,34 @@ const styles = StyleSheet.create({
   },
   searchButtonDisabled: {
     backgroundColor: "#ccc",
+  },
+  filterContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#6200ea",
+  },
+  activeFilterButton: {
+    backgroundColor: "#6200ea",
+  },
+  filterIcon: {
+    marginRight: 8,
+  },
+  filterButtonText: {
+    fontSize: 16,
+    color: "#6200ea",
+    fontWeight: "500",
+  },
+  activeFilterButtonText: {
+    color: "#fff",
   },
   loaderContainer: {
     flex: 1,
@@ -1125,11 +1258,16 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 4,
+  },
+  starsContainer: {
+    flexDirection: "row",
+    marginRight: 6,
   },
   ratingText: {
     fontSize: 12,
     color: "#666",
-    marginLeft: 4,
+    fontWeight: "500",
   },
   providerDetails: {
     marginBottom: 12,
@@ -1139,10 +1277,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
+  detailLabel: {
+    fontSize: 12,
+    color: "#999",
+    marginLeft: 8,
+    fontWeight: "500",
+  },
   detailText: {
     fontSize: 14,
     color: "#666",
-    marginLeft: 8,
+    marginLeft: 4,
     flex: 1,
   },
   offersPreview: {
@@ -1256,6 +1400,20 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     marginBottom: 8,
+  },
+  modalRatingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalStarsContainer: {
+    flexDirection: "row",
+    marginRight: 8,
+  },
+  modalRatingText: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
   },
   providerModalDetails: {
     padding: 16,
@@ -1413,20 +1571,41 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   totalContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#eee",
     marginTop: 16,
   },
+  totalBreakdown: {
+    gap: 8,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   totalLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#666",
+  },
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+  },
+  finalTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  finalTotalLabel: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#333",
   },
-  totalAmount: {
+  finalTotalAmount: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#6200ea",
@@ -1499,12 +1678,43 @@ const styles = StyleSheet.create({
   paymentContent: {
     padding: 16,
   },
-  paymentAmount: {
+  paymentBreakdown: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  paymentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  paymentLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#666",
+  },
+  paymentValue: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+  },
+  paymentTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  paymentTotalLabel: {
     fontSize: 18,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 16,
     color: "#333",
+  },
+  paymentTotalValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#6200ea",
   },
   cardField: {
     backgroundColor: "#efefef",

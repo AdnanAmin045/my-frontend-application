@@ -49,6 +49,10 @@ export default function OffersScreen() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
+  const [providerDeliveryCharges, setProviderDeliveryCharges] = useState(0);
+  const [providerDeliveryModal, setProviderDeliveryModal] = useState(false);
+  const [providerDeliveryInput, setProviderDeliveryInput] = useState("");
+  const [providerDeliveryLoading, setProviderDeliveryLoading] = useState(false);
 
   const {
     control,
@@ -199,11 +203,77 @@ export default function OffersScreen() {
     }
   };
 
+  // ✅ Fetch Provider Delivery Charges
+  const fetchProviderDeliveryCharges = async () => {
+    try {
+      const token = await AsyncStorage.getItem("user");
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+      if (!accessToken) return;
+
+      const response = await axios.get(`${API_URL}/providers/get-delivery-charges`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setProviderDeliveryCharges(response.data.data.deliveryCharges || 0);
+      }
+    } catch (err) {
+      console.log("Error fetching provider delivery charges:", err.response?.data || err.message);
+    }
+  };
+
+  // ✅ Update Provider Delivery Charges
+  const updateProviderDeliveryCharges = async () => {
+    const charges = parseFloat(providerDeliveryInput);
+    if (isNaN(charges) || charges < 0) {
+      Alert.alert("Error", "Please enter a valid delivery charge amount");
+      return;
+    }
+
+    try {
+      setProviderDeliveryLoading(true);
+      const token = await AsyncStorage.getItem("user");
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+      if (!accessToken) return;
+
+      const response = await axios.patch(
+        `${API_URL}/providers/update-delivery-charges`,
+        { deliveryCharges: charges },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        Alert.alert("Success", "Delivery charges updated successfully");
+        setProviderDeliveryCharges(charges);
+        setProviderDeliveryModal(false);
+        setProviderDeliveryInput("");
+      }
+    } catch (err) {
+      console.log("Error updating provider delivery charges:", err.response?.data || err.message);
+      Alert.alert("Error", "Failed to update delivery charges");
+    } finally {
+      setProviderDeliveryLoading(false);
+    }
+  };
+
+  // ✅ Open Provider Delivery Charges Modal
+  const openProviderDeliveryModal = () => {
+    setProviderDeliveryInput(providerDeliveryCharges.toString());
+    setProviderDeliveryModal(true);
+  };
+
   useEffect(() => {
     getToggleProfileStatus();
     fetchOffers();
     fetchServices();
     fetchProfileStatus();
+    fetchProviderDeliveryCharges();
   }, []);
 
   // ✅ Toggle Offer Active Status
@@ -395,6 +465,37 @@ const addService = () => {
         )}
       </View>
 
+      {/* Provider Delivery Charges */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "white",
+          padding: 12,
+          borderRadius: 10,
+          marginBottom: 12,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: "600" }}>Delivery Charges</Text>
+          <Text style={{ fontSize: 14, color: "#666", marginTop: 2 }}>
+            PKR: {providerDeliveryCharges}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#6200ee",
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 6,
+          }}
+          onPress={openProviderDeliveryModal}
+        >
+          <Text style={{ color: "white", fontWeight: "600" }}>Update</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Add Offer Button */}
       <TouchableOpacity
         style={{
@@ -563,24 +664,6 @@ const addService = () => {
             >
               {editingOffer ? "Edit Offer" : "Create New Offer"}
             </Text>
-
-            {/* Note about delivery charges */}
-            <View style={{
-              backgroundColor: "#FFF3E0",
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 15,
-              borderLeftWidth: 4,
-              borderLeftColor: "#FF6B35"
-            }}>
-              <Text style={{
-                color: "#FF6B35",
-                fontWeight: "600",
-                fontSize: 14
-              }}>
-                📦 Note: If you want to include delivery charges, please include them in the price.
-              </Text>
-            </View>
 
             {/* Title */}
             <Controller
@@ -794,6 +877,91 @@ const addService = () => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+      </Modal>
+
+      {/* Provider Delivery Charges Modal */}
+      <Modal visible={providerDeliveryModal} animationType="slide" transparent={true}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "center" }}>
+          <View
+            style={{
+              backgroundColor: "white",
+              margin: 20,
+              padding: 20,
+              borderRadius: 10,
+              elevation: 5,
+            }}
+          >
+            <Text
+              style={{ fontSize: 18, fontWeight: "bold", marginBottom: 20, textAlign: "center" }}
+            >
+              Update Delivery Charges
+            </Text>
+
+            <Text style={{ fontSize: 14, marginBottom: 20, color: "#666", textAlign: "center" }}>
+              Set your default delivery charges for all offers
+            </Text>
+
+            <Text style={{ fontWeight: "600", marginBottom: 8 }}>
+              Delivery Charges (PKR)
+            </Text>
+            <TextInput
+              placeholder="Enter delivery charges"
+              value={providerDeliveryInput}
+              onChangeText={setProviderDeliveryInput}
+              keyboardType="numeric"
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                padding: 12,
+                marginBottom: 20,
+                borderRadius: 6,
+                fontSize: 16,
+              }}
+            />
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#6c757d",
+                  padding: 12,
+                  borderRadius: 8,
+                  flex: 1,
+                  marginRight: 10,
+                }}
+                onPress={() => {
+                  setProviderDeliveryModal(false);
+                  setProviderDeliveryInput("");
+                }}
+                disabled={providerDeliveryLoading}
+              >
+                <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#6200ee",
+                  padding: 12,
+                  borderRadius: 8,
+                  flex: 1,
+                  marginLeft: 10,
+                  opacity: providerDeliveryLoading ? 0.7 : 1,
+                }}
+                onPress={updateProviderDeliveryCharges}
+                disabled={providerDeliveryLoading}
+              >
+                {providerDeliveryLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
+                    Update
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
