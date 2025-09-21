@@ -39,7 +39,7 @@ const signUpSchema = z.object({
   password: z
     .string()
     .min(6, "Password must be at least 6 characters")
-    .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+    .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
       "Password must contain at least one letter, one number, and one special character"),
   phoneNo: z
     .string()
@@ -143,7 +143,7 @@ const SignUpProvider = () => {
     try {
       // Request permissions first
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -167,7 +167,7 @@ const SignUpProvider = () => {
         setProfilePic(result.assets[0]);
       }
     } catch (error) {
-("Image picker error:", error);
+      ("Image picker error:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
@@ -183,7 +183,7 @@ const SignUpProvider = () => {
       formData.append('shopAddress', data.shopAddress);
       formData.append('currentLocation', JSON.stringify(data.currentLocation));
       formData.append('services', JSON.stringify(data.services));
-      
+
       if (profilePic) {
         formData.append('profilePic', {
           uri: profilePic.uri,
@@ -209,7 +209,7 @@ const SignUpProvider = () => {
         Alert.alert("Error", "Failed to register. Please try again.");
       }
     } catch (error) {
-("Provider registration error:", error);
+      ("Provider registration error:", error);
       Alert.alert("Error", "Something went wrong. Please try again!");
     } finally {
       setLoading(false);
@@ -239,8 +239,8 @@ const SignUpProvider = () => {
                   {profilePic ? (
                     <View style={styles.profilePicContainer}>
                       <Image source={{ uri: profilePic.uri }} style={styles.profilePic} />
-                      <TouchableOpacity 
-                        style={styles.removePicButton} 
+                      <TouchableOpacity
+                        style={styles.removePicButton}
                         onPress={() => setProfilePic(null)}
                       >
                         <IconButton icon="close" size={16} iconColor="#fff" />
@@ -289,8 +289,8 @@ const SignUpProvider = () => {
                       {servicesLoading
                         ? "Loading services..."
                         : selectedServices.length > 0
-                        ? `Selected: ${selectedServices.length}`
-                        : "Choose Services"}
+                          ? `Selected: ${selectedServices.length}`
+                          : "Choose Services"}
                     </Text>
                     <Ionicons name={menuVisible ? "chevron-up" : "chevron-down"} size={20} color="#6B7280" />
                   </TouchableOpacity>
@@ -324,6 +324,13 @@ const SignUpProvider = () => {
                 })}
               </View>
             )}
+
+            {/* Location Note */}
+            <View style={styles.locationNoteContainer}>
+              <Text style={styles.locationNoteIcon}>📍</Text>
+              <Text style={styles.locationNoteText}>
+                Your current location will be fetched now. If you are not at your shop, you can still sign up. Later, you can go to your dashboard and update your shop address.              </Text>
+            </View>
 
             <InputField control={control} name="shopAddress" label="Shop Address" placeholder="Enter Shop Address" multiline error={errors.shopAddress?.message} />
 
@@ -395,15 +402,15 @@ const styles = StyleSheet.create({
   profilePicWrapper: { alignItems: "center", justifyContent: "center" },
   profilePicButton: { alignItems: "center", justifyContent: "center" },
   profilePic: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: "#8A63D2" },
-  profilePicPlaceholder: { 
-    width: 100, 
-    height: 100, 
-    borderRadius: 50, 
-    backgroundColor: "#F8FAFC", 
-    borderWidth: 2, 
-    borderColor: "#E2E8F0", 
-    borderStyle: "dashed", 
-    justifyContent: "center", 
+  profilePicPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    borderStyle: "dashed",
+    justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -413,20 +420,20 @@ const styles = StyleSheet.create({
   },
   profilePicText: { color: "#8A63D2", fontSize: 14, fontWeight: "600", marginTop: 6 },
   profilePicSubtext: { color: "#94A3B8", fontSize: 11, marginTop: 2 },
-  removePicButton: { 
-    position: "absolute", 
-    top: -8, 
-    right: -8, 
-    backgroundColor: "#FF6B6B", 
-    borderRadius: 18, 
-    width: 36, 
-    height: 36, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 3.84, 
+  removePicButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#FF6B6B",
+    borderRadius: 18,
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
     elevation: 5,
     borderWidth: 2,
     borderColor: "#fff",
@@ -444,6 +451,27 @@ const styles = StyleSheet.create({
   loginButtonText: { fontSize: 16, fontWeight: "600", color: "#8A63D2" },
   homeButton: { width: "100%", borderRadius: 8, padding: 12, alignItems: "center", justifyContent: "center", backgroundColor: "transparent", marginTop: 8 },
   homeButtonText: { fontSize: 14, fontWeight: "500", color: "#6B7280" },
+  locationNoteContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    marginVertical: 16
+  },
+  locationNoteIcon: {
+    fontSize: 18,
+    marginRight: 8
+  },
+  locationNoteText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#92400E",
+    lineHeight: 18,
+    fontWeight: "500"
+  },
 });
 
 export default SignUpProvider;
